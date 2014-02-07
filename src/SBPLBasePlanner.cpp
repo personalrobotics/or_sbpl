@@ -1,5 +1,6 @@
 #include <or_sbpl/SBPLBasePlanner.h>
 
+#include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <sbpl/planners/araplanner.h>
 
@@ -20,17 +21,27 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
         _robot = robot;
         _params = params;
         _env = boost::make_shared<SBPLBasePlannerEnvironment>(robot);
+
+        // TODO: Initialize the environment
+
         _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
+
+        _initialized = true;
     }
+
+    return _initialized;
 
 }
 
 bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, std::istream& input) {
 
+
 }
 
 OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr ptraj) {
 
+
+    RAVELOG_INFO("[SBPLBasePlanner] Begin PlanPath");
 
     /* Setup the start point for the plan */
     try{
@@ -50,7 +61,21 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
     /* Setup the goal point for the plan */
     try{
 
-        // TODO: Get the goal out of the parameters
+        // Get the configuration specification and the goal from the parameters and turn
+        // it into an x,y,theta
+        std::vector<OpenRAVE::dReal> goal_vals;
+        _params->_configurationspecification.ExtractAffineValues(goal_vals.begin(),
+                                                                 _params->vgoalconfig.begin(),
+                                                                 _robot,
+                                                                 OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
+        BOOST_FOREACH(OpenRAVE::dReal v, goal_vals){
+            std::cout << "Val: " << v << std::endl;
+        }
+
+        int goal_id = _env->SetGoal(goal_vals[0], goal_vals[1], goal_vals[2]); 
+
+        // TODO: Check that this is a valid id
+
     }catch( SBPL_Exception e ){
         RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the goal state");
         return OpenRAVE::PS_Failed;
@@ -65,7 +90,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         if( solved ){
 
             /* Write out the trajectory to return back to the caller */
-            OpenRAVE::ConfigurationSpecification config_spec = OpenRAVE::RaveGetAffineConfigurationSpecification(OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationQuat,
+            OpenRAVE::ConfigurationSpecification config_spec = OpenRAVE::RaveGetAffineConfigurationSpecification(OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis,
                                                                                                                  _robot, "linear");
             int time_group = config_spec.AddDeltaTimeGroup();
             OpenRAVE::ConfigurationSpecification::Group affine_group = config_spec.GetGroupFromName("affine_transform");
@@ -98,7 +123,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
                     
                 OpenRAVE::RaveGetAffineDOFValuesFromTransform(point.begin() + affine_offset, 
                                                               transform, 
-                                                              OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationQuat);
+                                                              OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
                 
                 // Insert the point
                 ptraj->Insert(idx, point, true);
