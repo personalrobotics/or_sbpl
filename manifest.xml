@@ -1,0 +1,15 @@
+<package>
+  <description brief="or_sbpl">
+     or_sbpl
+  </description>
+  <author>jeking</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/or_ompl</url>
+  <depend package="openrave"/>
+  <export>
+    <openrave plugins="${prefix}/lib"/>
+    <cpp cflags="-I${prefix}/src" lflags="-L${prefix}/lib"/>
+  </export>
+
+</package>
