@@ -1,4 +1,5 @@
 #include <or_sbpl/SBPLBasePlannerEnvironment.h>
+#include <boost/foreach.hpp>
 
 using namespace or_sbpl; 
 
@@ -144,7 +145,74 @@ int SBPLBasePlannerEnvironment::GetStartHeuristic(int stateID){
 
 }
  
+/*
+ * Returns a list of valid successor states.  Actions leading to these successors
+ * have been checked for collision against the openrave environment.
+ *
+ * @param SourceStateID The state to get successors for
+ * @param SuccIDV The list of valid successors
+ * @param CostV The cost to move to each predecessor
+ */
 void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV){
+
+    SuccIDV->clear();
+    CostV->clear();
+
+    // Check validity of the state
+    if( !IsValidStateId(SourceStateID) ){
+        RAVELOG_ERROR("[SBPLBasePlanningEnvironment] Id %d is invalid state", SourceStateID);
+        return;
+    }
+
+    // If this is the goal state, just return
+    if( SourceStateID == _goal ){
+        RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanded goal. Returning.");
+        return;
+    }
+
+    // Convert to a world coordinate
+    GridCoordinate gc = StateId2CoordTable[SourceStateID];
+    WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
+
+    // Now step through each of the actions
+    BOOST_FOREACH(ActionPtr a, _actions){
+
+        // Now step through the action, checking for collision along the way
+        int steps = static_cast<int>(ceil(a->duration/_timestep));
+        bool valid = true;
+        WorldCoordinate wc_next;
+        WorldCoordinate wc_current = wc;
+        for(unsigned int step; step < steps & valid; step++){
+
+            // Step the action
+            wc_next = a->apply(wc_current, _timestep);
+
+            // Put the robot in the resulting pose
+
+            // Check for collision and break out if needed
+        }
+
+        if( valid ) {
+            GridCoordinate gc_final = WorldCoordinateToGridCoordinate(wc_current);
+            int state_idx = GridCoordinateToStateIndex(gc_final);
+
+            if(state_idx != INVALID_INDEX){
+                // Action propagatin led to a valid state
+
+                std::map<int, int>::iterator it = StateIndex2StateIdTable.find(state_idx);
+                int state_id;
+                if( it == StateIndex2StateIdTable.end() ){
+                    state_id = CreateState(gc);
+                }else{
+                    state_id = it->second;
+                }
+                SuccIDV->push_back(state_id);
+                //TODO: Add the cost
+            }
+        }
+
+    }
+    
 
 }
 
@@ -284,4 +352,19 @@ int SBPLBasePlannerEnvironment::CreateState(const GridCoordinate &gc) {
     StateIndex2StateIdTable[state_idx] = state_id;
 
     return state_id;
+}
+
+/*
+ * Checks a state id for validity
+ *
+ * @param state_id The id to check
+ * @return True if the id is valid
+ */
+bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
+    
+    if( state_id < 0 || state_id >= StateId2CoordTable.size() ){
+        return false;
+    }else{
+        return true;
+    }
 }

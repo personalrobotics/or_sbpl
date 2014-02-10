@@ -40,6 +40,7 @@ namespace or_sbpl {
         GridCoordinate StateIndexToGridCoordinate(unsigned int stateidx) const;
         int GridCoordinateToStateIndex(const GridCoordinate &gcoord) const;
         int CreateState(const GridCoordinate &gc);
+        bool IsValidStateId(const int &state_id) const;
 
 
         static const int INVALID_INDEX = -1;
@@ -60,6 +61,9 @@ namespace or_sbpl {
         int _gridheight;
         int _gridwidth;
         int _numangles;
+
+        std::vector<ActionPtr> _actions;
+        double _timestep; // seconds per step
     };
 
     typedef boost::shared_ptr<SBPLBasePlannerEnvironment> SBPLBasePlannerEnvironmentPtr;
