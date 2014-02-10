@@ -3,6 +3,7 @@
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <sbpl/planners/araplanner.h>
+#include <sbpl/utils/utils.h>
 
 using namespace or_sbpl;
 
@@ -37,6 +38,8 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, std::istream& input
 
 
 }
+
+
 
 OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr ptraj) {
 
@@ -98,7 +101,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
 
             ptraj->Init(config_spec);
             std::vector<sbpl_xy_theta_pt_t> xyth_path;
-            _env->ConvertStateIDPathintoXYThetaPath(&plan, &xyth_path);
+            _env->ConvertStateIDPathIntoXYThetaPath(plan, xyth_path);
 
             for(unsigned int idx=0; idx < xyth_path.size(); idx++){
 
