@@ -26,6 +26,30 @@ bool SBPLBasePlannerEnvironment::InitializeMDPCfg(MDPConfig* MDPCfg) {
  */
 int SBPLBasePlannerEnvironment::SetStart(const double &x, const double &y, const double &theta) {
 
+    WorldCoordinate wc(x, y, theta);
+    GridCoordinate gc = WorldCoordinateToGridCoordinate(wc);
+
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set start to grid coordinate: %s", gc.toString().c_str());
+    int idx = GridCoordinateToStateIndex(gc);
+    
+    if( idx == INVALID_INDEX ) {
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The start state %s is invalid.", gc.toString().c_str() );
+        throw new SBPL_Exception();
+    }
+
+    std::map<int, int>::iterator it = StateIndex2StateIdTable.find(idx);
+    int state_id;
+    if(it == StateIndex2StateIdTable.end()){
+        state_id = CreateState(gc);
+    }else{
+        state_id = it->second;
+    }
+
+    _start = state_id;
+
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Set start to id: %d", _start);
+
+    return state_id;
 }
 
 /*
@@ -38,6 +62,30 @@ int SBPLBasePlannerEnvironment::SetStart(const double &x, const double &y, const
  */
 int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const double &theta) {
 
+    WorldCoordinate wc(x, y, theta);
+    GridCoordinate gc = WorldCoordinateToGridCoordinate(wc);
+
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate: %s", gc.toString().c_str());
+    int idx = GridCoordinateToStateIndex(gc);
+    
+    if( idx == INVALID_INDEX ) {
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The goal state %s is invalid.", gc.toString().c_str() );
+        throw new SBPL_Exception();
+    }
+
+    std::map<int, int>::iterator it = StateIndex2StateIdTable.find(idx);
+    int state_id;
+    if(it == StateIndex2StateIdTable.end()){
+        state_id = CreateState(gc);
+    }else{
+        state_id = it->second;
+    }
+
+    _goal = state_id;
+
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Set goal to id: %d", _goal);
+
+    return state_id;
 }
 
 /*
@@ -60,11 +108,11 @@ int SBPLBasePlannerEnvironment::GetFromToHeuristic(int FromStateID, int ToStateI
     }
 
     // Grab the correct world coordinate
-    GridCoordinate* gTo = StateId2CoordTable[ToStateID];
-    WorldCoordinate wTo = GridCoordinateToWorldCoordinate(*gTo);
+    GridCoordinate gTo = StateId2CoordTable[ToStateID];
+    WorldCoordinate wTo = GridCoordinateToWorldCoordinate(gTo);
 
-    GridCoordinate* gFrom = StateId2CoordTable[FromStateID];
-    WorldCoordinate wFrom = GridCoordinateToWorldCoordinate(*gFrom);
+    GridCoordinate gFrom = StateId2CoordTable[FromStateID];
+    WorldCoordinate wFrom = GridCoordinateToWorldCoordinate(gFrom);
 
     // Calculate the euclidean distance
     double euc_dist_m = hypot(wFrom.x - wTo.x, wFrom.y - wTo.y);
@@ -182,18 +230,58 @@ GridCoordinate SBPLBasePlannerEnvironment::StateIndexToGridCoordinate(unsigned i
         throw new SBPL_Exception();
     }
     
-    int stateid = StateIndex2StateIdTable[stateidx];
-    if( stateid == UNINITIALIZED_INDEX ){
+    std::map<int, int>::const_iterator it = StateIndex2StateIdTable.find(stateidx);
+    if( it == StateIndex2StateIdTable.end() ){
         RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The state index %d maps to an uninitialized state id.", stateidx);
         throw new SBPL_Exception();
     }
 
-    GridCoordinate retCoord;
-    GridCoordinate* node = StateId2CoordTable[stateid];
+    return StateId2CoordTable[it->second];
+}
 
-    retCoord.x = node->x;
-    retCoord.y = node->y;
-    retCoord.theta = node->theta;
-    
-    return retCoord;
+/**
+ * Converts the grid coordinate to a state id
+ *
+ * @param coord The grid coordinate to convert
+ * @return The state id associated with the grid coordinate
+ */
+int SBPLBasePlannerEnvironment::GridCoordinateToStateIndex(const GridCoordinate &coord) const{
+
+    int retIdx = INVALID_INDEX;
+
+
+    //check validity
+    if(coord.x < 0 || coord.x >= _gridwidth || 
+       coord.y < 0 || coord.y >= _gridheight ||
+       coord.theta < 0 || coord.theta >= _numangles){
+        return retIdx;
+    }
+     
+    retIdx = coord.theta + coord.y * _numangles + coord.x * _numangles * _gridheight;
+
+    return retIdx;
+  
+}
+
+/*
+ * Creates a state from the given coordinate
+ *
+ * @param coord The coordinate
+ * @return The id of the created state
+ */
+int SBPLBasePlannerEnvironment::CreateState(const GridCoordinate &gc) {
+
+    // get the index
+    int state_idx = GridCoordinateToStateIndex(gc);
+
+    if(state_idx == INVALID_INDEX){
+        return UNINITIALIZED_ID;
+    }
+
+    // generate a new id and add the node
+    int state_id = StateId2CoordTable.size();
+    StateId2CoordTable.push_back(gc);
+    StateIndex2StateIdTable[state_idx] = state_id;
+
+    return state_id;
 }

@@ -1,24 +1,13 @@
 #ifndef SBPL_BASE_PLANNER_ENVIRONMENT_H_
 #define SBPL_BASE_PLANNER_ENVIRONMENT_H_
 
+#include <or_sbpl/SBPLBasePlannerTypes.h>
 #include <sbpl/discrete_space_information/environment.h>
 #include <sbpl/utils/utils.h>
 
 #include <openrave/openrave.h>
 
 namespace or_sbpl {
-
-    struct WorldCoordinate {
-        double x; 
-        double y;
-        double theta;
-    };
-
-    struct GridCoordinate {
-        int x;
-        int y;
-        int theta;
-    };
 
     class SBPLBasePlannerEnvironment : public DiscreteSpaceInformation {
 
@@ -49,12 +38,16 @@ namespace or_sbpl {
         WorldCoordinate GridCoordinateToWorldCoordinate(const GridCoordinate &gcoord) const;
         GridCoordinate WorldCoordinateToGridCoordinate(const WorldCoordinate &wcoord) const;
         GridCoordinate StateIndexToGridCoordinate(unsigned int stateidx) const;
+        int GridCoordinateToStateIndex(const GridCoordinate &gcoord) const;
+        int CreateState(const GridCoordinate &gc);
 
-        static const int UNINITIALIZED_INDEX = -1;
+
+        static const int INVALID_INDEX = -1;
+        static const int UNINITIALIZED_ID = -1;
 
     protected:
-        std::vector<GridCoordinate*> StateId2CoordTable;
-        std::vector<int> StateIndex2StateIdTable;
+        std::vector<GridCoordinate> StateId2CoordTable;
+        std::map<int, int> StateIndex2StateIdTable;
 
     private:
         OpenRAVE::RobotBasePtr _robot;         
@@ -63,6 +56,10 @@ namespace or_sbpl {
 
         int _goal;
         int _start;
+
+        int _gridheight;
+        int _gridwidth;
+        int _numangles;
     };
 
     typedef boost::shared_ptr<SBPLBasePlannerEnvironment> SBPLBasePlannerEnvironmentPtr;
