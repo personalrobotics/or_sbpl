@@ -1,7 +1,10 @@
 #include <or_sbpl/SBPLBasePlannerEnvironment.h>
 #include <boost/foreach.hpp>
+#include <boost/math/constants/constants.hpp>
 
 using namespace or_sbpl; 
+
+namespace bmc = boost::math::constants;
 
 SBPLBasePlannerEnvironment::SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr robot) 
   : _robot(robot) {
@@ -10,12 +13,34 @@ SBPLBasePlannerEnvironment::SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr ro
 }
 
 /*
- * Initialize the environment from the planner parameters
+ * Initialize the environment from the given parameters
  *
- * @param params The parameters to use for initialization
+ * @param cellsize The size of the grid cellsize
+ * @param extents The extends of the environment
+ * @param angles The number of angles to divide the space
+ * @param actions The list of valid actions
  */
-bool SBPLBasePlannerEnvironment::Initialize(OpenRAVE::PlannerBase::PlannerParametersConstPtr params) {
+bool SBPLBasePlannerEnvironment::Initialize(const double &cellsize,
+                                            const EnvironmentExtents &extents,
+                                            const int &numangles,
+                                            const std::vector<ActionPtr> &actions){
 
+    // Setup environment attributes
+    _cellsize = cellsize;
+
+    _gridwidth = static_cast<int>(ceil((extents.xmax - extents.xmin)/_cellsize));
+    _gridheight = static_cast<int>(ceil((extents.ymax - extents.ymin)/_cellsize));
+
+
+    // Angles
+    _numangles = numangles;
+    _anglesize = 2.0*bmc::pi<double>()/_numangles;
+
+    // Actions
+    _actions = actions;
+
+    return true;
+    
 }
 
 /*
@@ -87,11 +112,11 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
     WorldCoordinate wc(x, y, theta);
     GridCoordinate gc = WorldCoordinateToGridCoordinate(wc);
 
-    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate: %s", gc.toString().c_str());
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate: %s\n", gc.toString().c_str());
     int idx = GridCoordinateToStateIndex(gc);
     
     if( idx == INVALID_INDEX ) {
-        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The goal state %s is invalid.", gc.toString().c_str() );
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The goal state %s is invalid.\n", gc.toString().c_str() );
         throw new SBPL_Exception();
     }
 
@@ -105,9 +130,14 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
 
     _goal = state_id;
 
-    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Set goal to id: %d", _goal);
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Set goal to id: %d\n", _goal);
 
     return state_id;
+}
+
+void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoXYThetaPath(const std::vector<int> &state_ids,
+                                                                   std::vector<sbpl_xy_theta_pt_t> &path) const {
+
 }
 
 /*
@@ -120,12 +150,12 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
  */
 int SBPLBasePlannerEnvironment::GetFromToHeuristic(int FromStateID, int ToStateID){
     if(FromStateID >= (int) StateId2CoordTable.size()){
-        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] ERROR in GetFromToHeuristic: FromStateID %d is illegal", FromStateID);
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] ERROR in GetFromToHeuristic: FromStateID %d is illegal\n", FromStateID);
         throw new SBPL_Exception();
     }
     
     if(ToStateID >= (int) StateId2CoordTable.size()){
-        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] ERROR in GetFromToHeuristic: ToStateID %d is illegal", ToStateID);
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] ERROR in GetFromToHeuristic: ToStateID %d is illegal\n", ToStateID);
         throw new SBPL_Exception();
     }
 
@@ -181,13 +211,13 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 
     // Check validity of the state
     if( !IsValidStateId(SourceStateID) ){
-        RAVELOG_ERROR("[SBPLBasePlanningEnvironment] Id %d is invalid state", SourceStateID);
+        RAVELOG_ERROR("[SBPLBasePlanningEnvironment] Id %d is invalid state\n", SourceStateID);
         return;
     }
 
     // If this is the goal state, just return
     if( SourceStateID == _goal ){
-        RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanded goal. Returning.");
+        RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanded goal. Returning.\n");
         return;
     }
 
@@ -260,7 +290,7 @@ void SBPLBasePlannerEnvironment::GetPreds(int TargetStateID, std::vector<int>* P
  */
 void SBPLBasePlannerEnvironment::SetAllActionsandAllOutcomes(CMDPSTATE* state){
 
-    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllActionsandAllOutcomes is not implemented.");
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllActionsandAllOutcomes is not implemented.\n");
     throw new SBPL_Exception();
 }
  
@@ -269,7 +299,7 @@ void SBPLBasePlannerEnvironment::SetAllActionsandAllOutcomes(CMDPSTATE* state){
  */
 void SBPLBasePlannerEnvironment::SetAllPreds(CMDPSTATE* state){
 
-    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllPreds is not implemented.");
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllPreds is not implemented.\n");
     throw new SBPL_Exception();
 }
 
@@ -290,7 +320,7 @@ int SBPLBasePlannerEnvironment::SizeofCreatedEnv(){
 void SBPLBasePlannerEnvironment::PrintState(int stateID, bool bVerbose, FILE* fOut){
 
     if( stateID > StateId2CoordTable.size() ){
-        RAVELOG_ERROR("[SBPLBasePlanningEnvironment] Invalid state id: %d.", stateID);
+        RAVELOG_ERROR("[SBPLBasePlanningEnvironment] Invalid state id: %d.\n", stateID);
         throw new SBPL_Exception();
     }
 
@@ -312,7 +342,7 @@ void SBPLBasePlannerEnvironment::PrintState(int stateID, bool bVerbose, FILE* fO
  */
 void SBPLBasePlannerEnvironment::PrintEnv_Config(FILE* fOut){
 
-    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] PrintEnv_Config is not implemented.");
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] PrintEnv_Config is not implemented.\n");
     throw new SBPL_Exception();
 }
 
@@ -370,13 +400,13 @@ GridCoordinate SBPLBasePlannerEnvironment::WorldCoordinateToGridCoordinate(const
 GridCoordinate SBPLBasePlannerEnvironment::StateIndexToGridCoordinate(unsigned int stateidx) const{
 
     if( stateidx >= StateIndex2StateIdTable.size() ){
-        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The state index %d is invalid.", stateidx);
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The state index %d is invalid.\n", stateidx);
         throw new SBPL_Exception();
     }
     
     std::map<int, int>::const_iterator it = StateIndex2StateIdTable.find(stateidx);
     if( it == StateIndex2StateIdTable.end() ){
-        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The state index %d maps to an uninitialized state id.", stateidx);
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The state index %d maps to an uninitialized state id.\n", stateidx);
         throw new SBPL_Exception();
     }
 

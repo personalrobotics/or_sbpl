@@ -26,7 +26,7 @@ TwistAction::TwistAction(const double &dx, const double &dtheta, const double &d
  * @param timestep The duration to apply the action
  * @return The updated pose
  */
-WorldCoordinate TwistAction::apply(const WorldCoordinate &wc, const double &timestep) {
+WorldCoordinate TwistAction::apply(const WorldCoordinate &wc, const double &timestep) const {
 
     WorldCoordinate retCoord(wc);
     retCoord.theta += dtheta*timestep;

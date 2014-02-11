@@ -1,4 +1,5 @@
 #include <or_sbpl/SBPLBasePlanner.h>
+#include <or_sbpl/TwistAction.h>
 
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
@@ -23,8 +24,45 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
         _params = params;
         _env = boost::make_shared<SBPLBasePlannerEnvironment>(robot);
 
-        // TODO: Initialize the environment
+        // Parse the extra parameters
+        std::stringstream extra_stream;
+        extra_stream << params->_sExtraParameters;
+        int numangles = 0;
+        double cellsize = 0.0;
+        EnvironmentExtents extents;
+        std::vector<ActionPtr> actions;
+        while(extra_stream.good()) {
+            
+            std::string key;
+            extra_stream >> key;
+            
+            if( key == "numangles" ){
+                extra_stream >> numangles;
+                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Set numangles to %d\n", numangles);
+            }else if( key == "cellsize" ) {
+                extra_stream >> cellsize;
+                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Set cellsize to %0.3f\n", cellsize);
+            }else if( key == "extents" ){
+                extra_stream >> extents.xmin >> extents.xmax >> extents.ymin >> extents.ymax;
+                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Setting extents to [ %0.3f, %0.3f, %0.3f, %0.3f ]\n", 
+                              extents.xmin, extents.xmax, extents.ymin, extents.ymax);
+            }else if( key == "action" ) {
+                double dx, dtheta, duration;
+                extra_stream >> dx >> dtheta >> duration;
+                ActionPtr action = boost::make_shared<TwistAction>(dx, dtheta, duration);
+                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dtheta - %0.3f, duration - %0.3f", dx, dtheta, duration);
+                actions.push_back(action);
+            }else{
+                RAVELOG_WARN("[SBPLBasePlanner] Unrecognized parameters: %s\n", key.c_str());
+            }
+                
+        }
 
+        if( extra_stream.fail() ){
+            return false;
+        }
+        
+        _env->Initialize(cellsize, extents, numangles, actions);
         _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
 
         _initialized = true;
@@ -44,7 +82,7 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, std::istream& input
 OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr ptraj) {
 
 
-    RAVELOG_INFO("[SBPLBasePlanner] Begin PlanPath");
+    RAVELOG_INFO("[SBPLBasePlanner] Begin PlanPath\n");
 
     /* Setup the start point for the plan */
     try{
@@ -57,7 +95,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         //TODO: Check that this is a valid id
 
     }catch( SBPL_Exception e ){
-        RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the start state");
+        RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the start state\n");
         return OpenRAVE::PS_Failed;
     }
     
@@ -80,7 +118,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         // TODO: Check that this is a valid id
 
     }catch( SBPL_Exception e ){
-        RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the goal state");
+        RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the goal state\n");
         return OpenRAVE::PS_Failed;
     }
 
@@ -135,12 +173,12 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
             }
 
         }else{
-            RAVELOG_ERROR("[SBPLBasePlanner] SBPL unable to find solution in allocated time");
+            RAVELOG_ERROR("[SBPLBasePlanner] SBPL unable to find solution in allocated time\n");
             return OpenRAVE::PS_Failed;
         }
 
     }catch( SBPL_Exception e ){
-        RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while planning");
+        RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while planning\n");
         return OpenRAVE::PS_Failed;
     }
 

@@ -61,6 +61,18 @@ namespace or_sbpl {
 
     typedef boost::shared_ptr<Action> ActionPtr;
 
+
+    class EnvironmentExtents {
+    public:
+    EnvironmentExtents() : xmin(0.0), xmax(0.0), ymin(0.0), ymax(0.0) {}
+    EnvironmentExtents(const double &xmin, const double &xmax, const double &ymin, const double &ymax) :
+        xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax) {};
+
+        double xmin;
+        double xmax;
+        double ymin;
+        double ymax;
+    };
     
 }
 

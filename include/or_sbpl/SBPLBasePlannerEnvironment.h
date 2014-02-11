@@ -17,7 +17,10 @@ namespace or_sbpl {
         SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr robot);
         ~SBPLBasePlannerEnvironment() {}
 
-        virtual bool Initialize(OpenRAVE::PlannerBase::PlannerParametersConstPtr params);
+        virtual bool Initialize(const double &cellsize,
+                                const EnvironmentExtents &extents,
+                                const int &numangles,
+                                const std::vector<ActionPtr> &actions);
 
         virtual bool InitializeEnv(const char* sEnvFile);
         virtual bool InitializeMDPCfg(MDPConfig* MDPCfg);

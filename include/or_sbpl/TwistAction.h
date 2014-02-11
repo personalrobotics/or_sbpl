@@ -7,10 +7,11 @@ namespace or_sbpl {
 
     class TwistAction : public Action {
     
+    public:
         TwistAction();
         TwistAction(const double &dx, const double &dtheta, const double &duration);
         
-        virtual WorldCoordinate apply(const WorldCoordinate &wc, const double &timestep);
+        virtual WorldCoordinate apply(const WorldCoordinate &wc, const double &timestep) const;
         
         double dx;
         double dtheta;
