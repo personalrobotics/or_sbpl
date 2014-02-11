@@ -3,6 +3,8 @@
 
 #include <or_sbpl/SBPLBasePlannerTypes.h>
 #include <sbpl/discrete_space_information/environment.h>
+#include <sbpl/utils/mdp.h>
+#include <sbpl/utils/mdpconfig.h>
 #include <sbpl/utils/utils.h>
 
 #include <openrave/openrave.h>
@@ -14,6 +16,8 @@ namespace or_sbpl {
     public:
         SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr robot);
         ~SBPLBasePlannerEnvironment() {}
+
+        virtual bool Initialize(OpenRAVE::PlannerBase::PlannerParametersConstPtr params);
 
         virtual bool InitializeEnv(const char* sEnvFile);
         virtual bool InitializeMDPCfg(MDPConfig* MDPCfg);
@@ -51,6 +55,9 @@ namespace or_sbpl {
         std::map<int, int> StateIndex2StateIdTable;
 
     private:
+
+        OpenRAVE::Transform WorldCoordinateToTransform(const WorldCoordinate &wcoord) const;
+
         OpenRAVE::RobotBasePtr _robot;         
         double _cellsize;
         double _anglesize;

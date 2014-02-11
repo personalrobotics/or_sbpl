@@ -46,16 +46,17 @@ namespace or_sbpl {
 
     class Action {
     public:
-    Action() : dx(0.0), dy(0.0), dtheta(0.0), duration(0.0) {};
-    Action(const double &dx, const double &dy, const double &dtheta, const double &duration) :
-        dx(dx), dy(dy), dtheta(dtheta), duration(duration) {};
-        
-        virtual WorldCoordinate apply(const WorldCoordinate &wc, const double &duration) const = 0;
+        virtual WorldCoordinate apply(const WorldCoordinate &wc, const double &timestep) const = 0;
 
-        double dx;
-        double dy;
-        double dtheta;
-        double duration;
+        double getDuration() const { return _duration; }
+        void setDuration(const double &duration) { _duration = duration; }
+
+        std::string getName() const { return _name; }
+        void setName(const std::string &name) { _name = name; }
+
+    protected:
+        double _duration;
+        std::string _name;
     };
 
     typedef boost::shared_ptr<Action> ActionPtr;

@@ -9,12 +9,33 @@ SBPLBasePlannerEnvironment::SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr ro
 
 }
 
-bool SBPLBasePlannerEnvironment::InitializeEnv(const char* sEnvFile) {
+/*
+ * Initialize the environment from the planner parameters
+ *
+ * @param params The parameters to use for initialization
+ */
+bool SBPLBasePlannerEnvironment::Initialize(OpenRAVE::PlannerBase::PlannerParametersConstPtr params) {
 
 }
 
+/*
+ * Not implemented - we want to initialize from the OpenRAVE planner parameters
+ */
+bool SBPLBasePlannerEnvironment::InitializeEnv(const char* sEnvFile) {
+
+    RAVELOG_ERROR("[SBPLBasePlannerEnvironment] InitializeEnv not implemented");
+    throw new SBPL_Exception();
+}
+
+/*
+ * Sets the start and the goal states in the MDPCfg 
+ */
 bool SBPLBasePlannerEnvironment::InitializeMDPCfg(MDPConfig* MDPCfg) {
 
+    MDPCfg->goalstateid = _goal;
+    MDPCfg->startstateid = _start;
+
+    return true;
 }
 
 /*
@@ -174,22 +195,32 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     GridCoordinate gc = StateId2CoordTable[SourceStateID];
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
 
+    // Lock the environment
+    OpenRAVE::EnvironmentBasePtr env = _robot->GetEnv();
+    OpenRAVE::EnvironmentMutex::scoped_lock lock(env->GetMutex());
+
+    // Create a robot state saver
+    OpenRAVE::RobotBase::RobotStateSaver rStateSaver(_robot);
+
     // Now step through each of the actions
     BOOST_FOREACH(ActionPtr a, _actions){
 
         // Now step through the action, checking for collision along the way
-        int steps = static_cast<int>(ceil(a->duration/_timestep));
+        int steps = static_cast<int>(ceil(a->getDuration()/_timestep));
         bool valid = true;
         WorldCoordinate wc_next;
         WorldCoordinate wc_current = wc;
-        for(unsigned int step; step < steps & valid; step++){
+        for(unsigned int step = 0; step < steps & valid; step++){
 
             // Step the action
             wc_next = a->apply(wc_current, _timestep);
 
             // Put the robot in the resulting pose
+            OpenRAVE::Transform trans = WorldCoordinateToTransform(wc_next);
+            _robot->SetTransform(trans);
 
             // Check for collision and break out if needed
+            valid = env->CheckCollision(_robot);
         }
 
         if( valid ) {
@@ -207,12 +238,16 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
                     state_id = it->second;
                 }
                 SuccIDV->push_back(state_id);
-                //TODO: Add the cost
+
+                double euc_dist_m = hypot(wc.x - wc_current.x, wc.y - wc_current.y);
+                CostV->push_back(euc_dist_m * 1000); // millimeters
             }
         }
 
     }
-    
+
+    // Restore state
+    rStateSaver.Restore();
 
 }
 
@@ -220,24 +255,65 @@ void SBPLBasePlannerEnvironment::GetPreds(int TargetStateID, std::vector<int>* P
 
 }
 
+/*
+ * Not implemented
+ */
 void SBPLBasePlannerEnvironment::SetAllActionsandAllOutcomes(CMDPSTATE* state){
 
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllActionsandAllOutcomes is not implemented.");
+    throw new SBPL_Exception();
 }
  
+/*
+ * Not implemented
+ */
 void SBPLBasePlannerEnvironment::SetAllPreds(CMDPSTATE* state){
 
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllPreds is not implemented.");
+    throw new SBPL_Exception();
 }
 
+/*
+ * @return The number of states currently in the environment
+ */
 int SBPLBasePlannerEnvironment::SizeofCreatedEnv(){
-
+    return (int) StateId2CoordTable.size();
 }
 
+/*
+ * Prints the state represented by the given id
+ *
+ * @param stateID The state to print
+ * @param bVerbose If true, prints both world and grid coordinate, otherwise only gridcoord is printed
+ * @param fOut The output location
+ */
 void SBPLBasePlannerEnvironment::PrintState(int stateID, bool bVerbose, FILE* fOut){
 
+    if( stateID > StateId2CoordTable.size() ){
+        RAVELOG_ERROR("[SBPLBasePlanningEnvironment] Invalid state id: %d.", stateID);
+        throw new SBPL_Exception();
+    }
+
+    GridCoordinate gc = StateId2CoordTable[stateID];
+
+    if(fOut == NULL){
+        fOut = stdout;
+    }
+
+    SBPL_FPRINTF(fOut, "Grid: X=%d, Y=%d, Theta=%d", gc.x, gc.y, gc.theta);
+    if(bVerbose){
+        WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
+        SBPL_FPRINTF(fOut, "World: X=%0.3f, Y=%0.3f, Theta=%0.3f", wc.x, wc.y, wc.theta);
+    }
 }
 
+/*
+ * Not implemented
+ */
 void SBPLBasePlannerEnvironment::PrintEnv_Config(FILE* fOut){
 
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] PrintEnv_Config is not implemented.");
+    throw new SBPL_Exception();
 }
 
 /**
@@ -367,4 +443,28 @@ bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
     }else{
         return true;
     }
+}
+
+/*
+ * Converts a (x,y,theta) pose to a transform for the robot
+ *
+ * @param wcoord The pose to convert
+ * @return The associated transform
+ */
+OpenRAVE::Transform SBPLBasePlannerEnvironment::WorldCoordinateToTransform(const WorldCoordinate &wcoord) const {
+
+
+    // Rotation
+    OpenRAVE::RaveTransformMatrix<double> R;
+    R.rotfrommat(OpenRAVE::RaveCos(wcoord.theta), -OpenRAVE::RaveSin(wcoord.theta), 0.,
+                 OpenRAVE::RaveSin(wcoord.theta),  OpenRAVE::RaveCos(wcoord.theta), 0.,
+                 0., 0., 1.);
+
+    // Translation
+    OpenRAVE::RaveVector<double> t(wcoord.x, wcoord.y, 0.0); //TODO: Fix the z coord
+
+    // Now put them together
+    OpenRAVE::RaveTransform<double> transform(OpenRAVE::geometry::quatFromMatrix(R), t);
+    return transform;
+
 }
