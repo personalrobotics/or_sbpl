@@ -38,19 +38,19 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
             
             if( key == "numangles" ){
                 extra_stream >> numangles;
-                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Set numangles to %d\n", numangles);
+                RAVELOG_INFO("[SBPLBasePlannerParameters] Set numangles to %d\n", numangles);
             }else if( key == "cellsize" ) {
                 extra_stream >> cellsize;
-                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Set cellsize to %0.3f\n", cellsize);
+                RAVELOG_INFO("[SBPLBasePlannerParameters] Set cellsize to %0.3f\n", cellsize);
             }else if( key == "extents" ){
                 extra_stream >> extents.xmin >> extents.xmax >> extents.ymin >> extents.ymax;
-                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Setting extents to [ %0.3f, %0.3f, %0.3f, %0.3f ]\n", 
+                RAVELOG_INFO("[SBPLBasePlannerParameters] Setting extents to [ %0.3f, %0.3f, %0.3f, %0.3f ]\n", 
                               extents.xmin, extents.xmax, extents.ymin, extents.ymax);
             }else if( key == "action" ) {
                 double dx, dtheta, duration;
                 extra_stream >> dx >> dtheta >> duration;
                 ActionPtr action = boost::make_shared<TwistAction>(dx, dtheta, duration);
-                RAVELOG_DEBUG("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dtheta - %0.3f, duration - %0.3f", dx, dtheta, duration);
+                RAVELOG_INFO("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dtheta - %0.3f, duration - %0.3f\n", dx, dtheta, duration);
                 actions.push_back(action);
             }else{
                 RAVELOG_WARN("[SBPLBasePlanner] Unrecognized parameters: %s\n", key.c_str());
@@ -90,9 +90,13 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         OpenRAVE::Transform rpose = _robot->GetTransform();
         OpenRAVE::RaveTransformMatrix<double> mat;
         OpenRAVE::geometry::matrixFromQuat(mat, rpose.rot);
-        int start_id = _env->SetStart(rpose.trans.x, rpose.trans.y, atan2(mat.rot(0,0), mat.rot(1,0))); //TODO: Double check
-        
-        //TODO: Check that this is a valid id
+
+        int start_id = _env->SetStart(rpose.trans.x, rpose.trans.y, atan2(mat.rot(0,0), mat.rot(1,0))); //TODO: Double check        
+        if( start_id < 0 || _planner->set_start(start_id) == 0){
+            RAVELOG_ERROR("[SBPLBasePlanner] Failed to set start state\n");
+            return OpenRAVE::PS_Failed;
+        }
+
 
     }catch( SBPL_Exception e ){
         RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the start state\n");
@@ -105,17 +109,24 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         // Get the configuration specification and the goal from the parameters and turn
         // it into an x,y,theta
         std::vector<OpenRAVE::dReal> goal_vals;
-        _params->_configurationspecification.ExtractAffineValues(goal_vals.begin(),
-                                                                 _params->vgoalconfig.begin(),
-                                                                 _robot,
-                                                                 OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
-        BOOST_FOREACH(OpenRAVE::dReal v, goal_vals){
-            std::cout << "Val: " << v << std::endl;
+
+        // NOTE: This is the correct thing to do, but openrave doesn't support an affine config spec for the parameters
+        //_params->_configurationspecification.ExtractAffineValues(goal_vals.begin(),
+        //                                                         _params->vgoalconfig.begin(),
+        //                                                         _robot,
+        //                                                         OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
+        goal_vals = _params->vgoalconfig;
+
+        if(goal_vals.size() != 3){
+            RAVELOG_ERROR("[SBPLBasePlanner] Unable to extract goal of appropriate size.\n");
+            return OpenRAVE::PS_Failed;
         }
 
         int goal_id = _env->SetGoal(goal_vals[0], goal_vals[1], goal_vals[2]); 
-
-        // TODO: Check that this is a valid id
+        if( goal_id < 0 || _planner->set_goal(goal_id) == 0){
+            RAVELOG_ERROR("[SBPLBasePlanner] Failed to set goal state\n");
+            return OpenRAVE::PS_Failed;
+        }
 
     }catch( SBPL_Exception e ){
         RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while setting the goal state\n");

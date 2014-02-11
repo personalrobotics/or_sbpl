@@ -7,7 +7,7 @@ using namespace or_sbpl;
 namespace bmc = boost::math::constants;
 
 SBPLBasePlannerEnvironment::SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr robot) 
-  : _robot(robot) {
+    : _robot(robot), _timestep(0.05) {
 
 
 }
@@ -76,11 +76,11 @@ int SBPLBasePlannerEnvironment::SetStart(const double &x, const double &y, const
     WorldCoordinate wc(x, y, theta);
     GridCoordinate gc = WorldCoordinateToGridCoordinate(wc);
 
-    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set start to grid coordinate: %s", gc.toString().c_str());
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set start to grid coordinate: %s\n", gc.toString().c_str());
     int idx = GridCoordinateToStateIndex(gc);
     
     if( idx == INVALID_INDEX ) {
-        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The start state %s is invalid.", gc.toString().c_str() );
+        RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The start state %s is invalid.\n", gc.toString().c_str() );
         throw new SBPL_Exception();
     }
 
@@ -94,7 +94,7 @@ int SBPLBasePlannerEnvironment::SetStart(const double &x, const double &y, const
 
     _start = state_id;
 
-    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Set start to id: %d", _start);
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Set start to id: %d\n", _start);
 
     return state_id;
 }
@@ -221,9 +221,13 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
         return;
     }
 
+
     // Convert to a world coordinate
     GridCoordinate gc = StateId2CoordTable[SourceStateID];
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
+
+    RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanding node %d: %d\n",
+                 SourceStateID, wc.toString().c_str());
 
     // Lock the environment
     OpenRAVE::EnvironmentBasePtr env = _robot->GetEnv();
@@ -250,7 +254,10 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
             _robot->SetTransform(trans);
 
             // Check for collision and break out if needed
-            valid = env->CheckCollision(_robot);
+            bool incollision = env->CheckCollision(_robot);
+            valid = !incollision;
+
+            wc_current = wc_next;
         }
 
         if( valid ) {
@@ -333,7 +340,9 @@ void SBPLBasePlannerEnvironment::PrintState(int stateID, bool bVerbose, FILE* fO
     SBPL_FPRINTF(fOut, "Grid: X=%d, Y=%d, Theta=%d", gc.x, gc.y, gc.theta);
     if(bVerbose){
         WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
-        SBPL_FPRINTF(fOut, "World: X=%0.3f, Y=%0.3f, Theta=%0.3f", wc.x, wc.y, wc.theta);
+        SBPL_FPRINTF(fOut, " World: X=%0.3f, Y=%0.3f, Theta=%0.3f\n", wc.x, wc.y, wc.theta);
+    }else{
+        SBPL_FPRINTF(fOut, "\n");
     }
 }
 
@@ -456,6 +465,10 @@ int SBPLBasePlannerEnvironment::CreateState(const GridCoordinate &gc) {
     int state_id = StateId2CoordTable.size();
     StateId2CoordTable.push_back(gc);
     StateIndex2StateIdTable[state_idx] = state_id;
+
+    int *entry = new int[1];
+    StateID2IndexMapping.push_back(entry);
+    StateID2IndexMapping[state_id][0] = -1; // TODO: What is this? copied from SBPL code.
 
     return state_id;
 }
