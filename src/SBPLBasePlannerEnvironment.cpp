@@ -366,6 +366,8 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 
                 double euc_dist_m = hypot(wc.x - wc_current.x, wc.y - wc_current.y);
                 CostV->push_back(euc_dist_m * 1000); // millimeters
+
+                ActionV->push_back(a);
             }
         }
 

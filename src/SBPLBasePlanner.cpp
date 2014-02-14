@@ -181,9 +181,9 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
                 
                 // Insert the point
                 ptraj->Insert(idx, point, true);
-
-                return OpenRAVE::PS_HasSolution;
             }
+
+            return OpenRAVE::PS_HasSolution;
 
         }else{
             RAVELOG_ERROR("[SBPLBasePlanner] SBPL unable to find solution in allocated time\n");
@@ -194,8 +194,5 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while planning\n");
         return OpenRAVE::PS_Failed;
     }
-
-
-    
     
 }
