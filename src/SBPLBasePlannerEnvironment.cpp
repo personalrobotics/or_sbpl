@@ -1,6 +1,7 @@
 #include <or_sbpl/SBPLBasePlannerEnvironment.h>
 #include <boost/foreach.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <limits>
 
 using namespace or_sbpl; 
 
@@ -112,9 +113,8 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
     WorldCoordinate wc(x, y, theta);
     GridCoordinate gc = WorldCoordinateToGridCoordinate(wc);
 
-    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate: %s\n", gc.toString().c_str());
     int idx = GridCoordinateToStateIndex(gc);
-    
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate %d: %s\n", idx, gc.toString().c_str());    
     if( idx == INVALID_INDEX ) {
         RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The goal state %s is invalid.\n", gc.toString().c_str() );
         throw new SBPL_Exception();
@@ -135,9 +135,79 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
     return state_id;
 }
 
+/*
+ * Returns x,y,theta-coords for each point along the path.
+ * 
+ *
+ * @param state_ids The list of state ids that make up the path
+ * @param path The converted path
+ */
 void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoXYThetaPath(const std::vector<int> &state_ids,
-                                                                   std::vector<sbpl_xy_theta_pt_t> &path) const {
+                                                                   std::vector<sbpl_xy_theta_pt_t> &path) {
 
+
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Begin ConvertStateIDPathIntoXYThetaPath\n");
+
+    // clear out the vector just in case
+    path.clear();
+
+    // iterate through the path
+    for(unsigned int pidx = 0; pidx < state_ids.size()-1; pidx++){
+        
+        // Grab the states that start and end this action
+        int start_id = state_ids[pidx];
+        int goal_id = state_ids[pidx+1];
+
+        // Now search through all successors to find the best (least cost) one
+        //   that leads to the goal
+        std::vector<int> succ_ids;
+        std::vector<int> costs;
+        std::vector<ActionPtr> actions;
+        
+        GetSuccs(start_id, &succ_ids, &costs, &actions);
+        
+        int best_idx = -1;
+        double best_cost = std::numeric_limits<double>::infinity();
+        for(unsigned int idx=0; idx < succ_ids.size(); idx++){
+
+            int succ_id = succ_ids[idx];
+            if(succ_id == goal_id && costs[idx] <= best_cost){
+                best_cost = costs[idx];
+                best_idx = idx;
+            }
+        }
+
+        // If we didn't find a successor something has gone terribly wrong, bail
+        if(best_idx == -1){
+            RAVELOG_ERROR("[SBPLBasePlannerEnvironment] Failed to reconstruct path.");
+            throw new SBPL_Exception();
+        }
+
+        // Play the action forward, setting all the intermediate states
+        ActionPtr a = actions[best_idx];
+        int steps = static_cast<int>(ceil(a->getDuration()/_timestep));
+
+        GridCoordinate gc = StateId2CoordTable[start_id];
+        WorldCoordinate wc_current = GridCoordinateToWorldCoordinate(gc);
+        WorldCoordinate wc_next;
+        for(unsigned int step = 0; step < steps; step++){
+
+            // Step the action
+            wc_next = a->apply(wc_current, _timestep);
+
+            // Add this pose to the pose list
+            sbpl_xy_theta_pt_t pt;
+            pt.x = wc_next.x;
+            pt.y = wc_next.y;
+            pt.theta = wc_next.theta;
+            path.push_back(pt);
+            
+            // Set this point to current and iterate
+            wc_current = wc_next;
+        }
+    }
+
+    return;
 }
 
 /*
@@ -206,6 +276,20 @@ int SBPLBasePlannerEnvironment::GetStartHeuristic(int stateID){
  */
 void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV){
 
+    std::vector<ActionPtr> ignored;
+    GetSuccs(SourceStateID, SuccIDV, CostV, &ignored);
+}
+/*
+ * Returns a list of valid successor states.  Actions leading to these successors
+ * have been checked for collision against the openrave environment.
+ *
+ * @param SourceStateID The state to get successors for
+ * @param SuccIDV The list of valid successors
+ * @param CostV The cost to move to each predecessor
+ * @param ActionV The action that moves to the predecessor
+ */
+void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV, std::vector<ActionPtr>* ActionV){
+
     SuccIDV->clear();
     CostV->clear();
 
@@ -226,7 +310,7 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     GridCoordinate gc = StateId2CoordTable[SourceStateID];
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
 
-    RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanding node %d: %d\n",
+    RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanding node %d: %s\n",
                  SourceStateID, wc.toString().c_str());
 
     // Lock the environment
@@ -270,10 +354,14 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
                 std::map<int, int>::iterator it = StateIndex2StateIdTable.find(state_idx);
                 int state_id;
                 if( it == StateIndex2StateIdTable.end() ){
-                    state_id = CreateState(gc);
+                    state_id = CreateState(gc_final);
                 }else{
                     state_id = it->second;
                 }
+
+                RAVELOG_INFO("[SBPLBasePlannerEnvironment] Adding successor state %d (idx %d): %s\n", 
+                             state_id, state_idx, wc_current.toString().c_str());
+
                 SuccIDV->push_back(state_id);
 
                 double euc_dist_m = hypot(wc.x - wc_current.x, wc.y - wc_current.y);

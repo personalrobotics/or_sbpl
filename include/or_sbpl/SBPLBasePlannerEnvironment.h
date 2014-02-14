@@ -29,6 +29,7 @@ namespace or_sbpl {
         virtual int GetGoalHeuristic(int stateID);
         virtual int GetStartHeuristic(int stateID);
         virtual void GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV);
+        virtual void GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV, std::vector<ActionPtr>* ActionV);
         virtual void GetPreds(int TargetStateID, std::vector<int>* PredIDV, std::vector<int>* CostV);
         virtual void SetAllActionsandAllOutcomes(CMDPSTATE* state);
         virtual void SetAllPreds(CMDPSTATE* state);
@@ -39,7 +40,7 @@ namespace or_sbpl {
         virtual int SetStart(const double &x, const double &y, const double &theta);
         virtual int SetGoal(const double &x, const double &y, const double &theta);
         virtual void ConvertStateIDPathIntoXYThetaPath(const std::vector<int> &state_ids,
-                                                       std::vector<sbpl_xy_theta_pt_t> &path) const;
+                                                       std::vector<sbpl_xy_theta_pt_t> &path);
         
 
         WorldCoordinate GridCoordinateToWorldCoordinate(const GridCoordinate &gcoord) const;

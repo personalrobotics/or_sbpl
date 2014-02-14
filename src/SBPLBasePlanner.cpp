@@ -87,11 +87,12 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
     /* Setup the start point for the plan */
     try{
         
-        OpenRAVE::Transform rpose = _robot->GetTransform();
-        OpenRAVE::RaveTransformMatrix<double> mat;
-        OpenRAVE::geometry::matrixFromQuat(mat, rpose.rot);
+        std::vector<OpenRAVE::dReal> start_vals(3);
+        OpenRAVE::RaveGetAffineDOFValuesFromTransform(start_vals.begin(),
+                                                      _robot->GetTransform(),
+                                                      OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
+        int start_id = _env->SetStart(start_vals[0], start_vals[1], start_vals[2]);
 
-        int start_id = _env->SetStart(rpose.trans.x, rpose.trans.y, atan2(mat.rot(0,0), mat.rot(1,0))); //TODO: Double check        
         if( start_id < 0 || _planner->set_start(start_id) == 0){
             RAVELOG_ERROR("[SBPLBasePlanner] Failed to set start state\n");
             return OpenRAVE::PS_Failed;
@@ -139,6 +140,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         std::vector<int> plan;
         int path_cost;
         int solved = _planner->replan(10.0, &plan, &path_cost);
+        RAVELOG_INFO("[SBPLBasePlanner] Solved? %d\n", solved);
         if( solved ){
 
             /* Write out the trajectory to return back to the caller */
