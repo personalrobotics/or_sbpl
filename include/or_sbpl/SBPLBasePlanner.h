@@ -27,6 +27,12 @@ namespace or_sbpl {
         virtual PlannerParametersConstPtr GetParameters() const { return _params; }
         
     private:
+
+	void AddWaypoint(OpenRAVE::TrajectoryBasePtr ptraj, const OpenRAVE::ConfigurationSpecification &config_spec,
+			 const double &x, const double &y, const double &theta,
+			 const double &dx, const double &dy, const double &dtheta) const;
+
+
         OpenRAVE::EnvironmentBasePtr _orenv;
         OpenRAVE::RobotBasePtr _robot;
         PlannerParametersConstPtr _params;

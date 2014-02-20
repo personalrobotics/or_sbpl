@@ -39,8 +39,8 @@ namespace or_sbpl {
 
         virtual int SetStart(const double &x, const double &y, const double &theta);
         virtual int SetGoal(const double &x, const double &y, const double &theta);
-        virtual void ConvertStateIDPathIntoXYThetaPath(const std::vector<int> &state_ids,
-                                                       std::vector<sbpl_xy_theta_pt_t> &path);
+        virtual void ConvertStateIDPathIntoWaypointPath(const std::vector<int> &state_ids,
+							std::vector<PlannedWaypointPtr> &path);
         
 
         WorldCoordinate GridCoordinateToWorldCoordinate(const GridCoordinate &gcoord) const;

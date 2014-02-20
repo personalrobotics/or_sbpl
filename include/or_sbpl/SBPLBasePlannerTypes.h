@@ -54,6 +54,10 @@ namespace or_sbpl {
         std::string getName() const { return _name; }
         void setName(const std::string &name) { _name = name; }
 
+	virtual double getXVelocity() const = 0;
+	virtual double getYVelocity() const = 0;
+	virtual double getRotationalVelocity() const = 0;
+
     protected:
         double _duration;
         std::string _name;
@@ -73,6 +77,15 @@ namespace or_sbpl {
         double ymin;
         double ymax;
     };
+
+    class PlannedWaypoint {
+    public:
+    PlannedWaypoint(const WorldCoordinate &coord, const ActionPtr& action) : coord(coord), action(action) {}
+	WorldCoordinate coord;
+	ActionPtr action;
+    };
+
+    typedef boost::shared_ptr<PlannedWaypoint> PlannedWaypointPtr;
     
 }
 

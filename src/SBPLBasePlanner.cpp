@@ -28,6 +28,7 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
     extra_stream << params->_sExtraParameters;
     int numangles = 0;
     double cellsize = 0.0;
+    double orientation_correction_velocity = 0.1;
     EnvironmentExtents extents;
     std::vector<ActionPtr> actions;
     while(extra_stream.good()) {
@@ -51,7 +52,7 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
             ActionPtr action = boost::make_shared<TwistAction>(dx, dtheta, duration);
             RAVELOG_INFO("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dtheta - %0.3f, duration - %0.3f\n", dx, dtheta, duration);
             actions.push_back(action);
-        }else{
+	}else{
             RAVELOG_WARN("[SBPLBasePlanner] Unrecognized parameters: %s\n", key.c_str());
         }
         
@@ -135,49 +136,28 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         // TODO: Replace this max time parameter
         std::vector<int> plan;
         int path_cost;
-        int solved = _planner->replan(10.0, &plan, &path_cost);
+        int solved = _planner->replan(60.0, &plan, &path_cost);
         RAVELOG_INFO("[SBPLBasePlanner] Solved? %d\n", solved);
         if( solved ){
 
             /* Write out the trajectory to return back to the caller */
             OpenRAVE::ConfigurationSpecification config_spec = OpenRAVE::RaveGetAffineConfigurationSpecification(OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis,
                                                                                                                  _robot, "linear");
-            int time_group = config_spec.AddDeltaTimeGroup();
-            OpenRAVE::ConfigurationSpecification::Group affine_group = config_spec.GetGroupFromName("affine_transform");
-            int affine_offset = affine_group.offset;
-
+	    config_spec.AddDerivativeGroups(1, true);  //velocity group, add delta time group
             ptraj->Init(config_spec);
-            std::vector<sbpl_xy_theta_pt_t> xyth_path;
-            _env->ConvertStateIDPathIntoXYThetaPath(plan, xyth_path);
+            std::vector<PlannedWaypointPtr> xyth_path;
+            _env->ConvertStateIDPathIntoWaypointPath(plan, xyth_path);
 
             for(unsigned int idx=0; idx < xyth_path.size(); idx++){
 
                 // Grab this point in the planned path
-                sbpl_xy_theta_pt_t pt = xyth_path[idx];
+                PlannedWaypointPtr pt = xyth_path[idx];
 
-                // Create a trajectory point
-                std::vector<double> point;
-                point.resize(config_spec.GetDOF());
-
-                // Manually set the timing
-                point[time_group] = idx;
-
-                // Set the affine values
-                OpenRAVE::RaveTransformMatrix<double> rot;
-                rot.rotfrommat(OpenRAVE::RaveCos(pt.theta), -OpenRAVE::RaveSin(pt.theta), 0.,
-                               OpenRAVE::RaveSin(pt.theta),  OpenRAVE::RaveCos(pt.theta), 0.,
-                               0., 0., 1.);
-                               
-                OpenRAVE::RaveVector<double> trans(pt.x, pt.y, 0.0); //TODO: Is this z correct?
-                OpenRAVE::RaveTransform<double> transform(OpenRAVE::geometry::quatFromMatrix(rot), trans);
-                    
-                OpenRAVE::RaveGetAffineDOFValuesFromTransform(point.begin() + affine_offset, 
-                                                              transform, 
-                                                              OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
-                
-                // Insert the point
-                ptraj->Insert(idx, point, true);
-            }
+		// Convert it to a trajectory waypoint
+		AddWaypoint(ptraj, config_spec, 
+			    pt->coord.x, pt->coord.y, pt->coord.theta,
+			    pt->action->getXVelocity(), pt->action->getYVelocity(), pt->action->getRotationalVelocity());
+	    }
 
             return OpenRAVE::PS_HasSolution;
 
@@ -190,5 +170,59 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
         RAVELOG_ERROR("[SBPLBasePlanner] SBPL encountered fatal exception while planning\n");
         return OpenRAVE::PS_Failed;
     }
+    
+}
+
+/*
+ * Creates a waypoint and adds it to the trajectory
+ * 
+ * @param ptraj The trajectory to append the waypoint to
+ * @param config_spec The configuration specification for the trajectory
+ * @param t The delta time value
+ * @param x The x location
+ * @param y The y location
+ * @param theta The orientation
+ * @param dx The x velocity
+ * @param dy The y velocity
+ * @param dtheta The rotational velocity
+ */
+void SBPLBasePlanner::AddWaypoint(OpenRAVE::TrajectoryBasePtr ptraj, const OpenRAVE::ConfigurationSpecification &config_spec, 
+				  const double &x, const double &y, const double &theta,
+				  const double &dx, const double &dy, const double &dtheta) const {
+
+    // Create a trajectory point
+    std::vector<double> point;
+    point.resize(config_spec.GetDOF());
+
+    // Get group offsets
+    OpenRAVE::ConfigurationSpecification::Group dt_group = config_spec.GetGroupFromName("deltatime");
+    int time_group = dt_group.offset;
+    OpenRAVE::ConfigurationSpecification::Group affine_group = config_spec.GetGroupFromName("affine_transform");
+    int affine_offset = affine_group.offset;
+    OpenRAVE::ConfigurationSpecification::Group affine_velocity_group = config_spec.GetGroupFromName("affine_velocities");
+    int affine_velocity_offset = affine_velocity_group.offset;
+
+    // Manually set the timing
+    int idx = ptraj->GetNumWaypoints();
+    point[time_group] = idx;
+
+    // Set the affine values
+    OpenRAVE::RaveTransformMatrix<double> rot;
+    rot.rotfrommat(OpenRAVE::RaveCos(theta), -OpenRAVE::RaveSin(theta), 0.,
+		   OpenRAVE::RaveSin(theta),  OpenRAVE::RaveCos(theta), 0.,
+		   0., 0., 1.);
+                               
+    OpenRAVE::RaveVector<double> trans(x, y, 0.0); //TODO: Is this z correct?
+    OpenRAVE::RaveTransform<double> transform(OpenRAVE::geometry::quatFromMatrix(rot), trans);
+    
+    OpenRAVE::RaveGetAffineDOFValuesFromTransform(point.begin() + affine_offset, 
+						  transform, 
+						  OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
+    point[affine_velocity_offset] = dx;
+    point[affine_velocity_offset + 1] = dy;
+    point[affine_velocity_offset + 2] = dtheta;
+    
+    // Insert the point
+    ptraj->Insert(idx, point, true);
     
 }

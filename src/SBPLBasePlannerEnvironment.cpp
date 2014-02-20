@@ -1,5 +1,6 @@
 #include <or_sbpl/SBPLBasePlannerEnvironment.h>
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/math/constants/constants.hpp>
 #include <limits>
 
@@ -142,8 +143,8 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
  * @param state_ids The list of state ids that make up the path
  * @param path The converted path
  */
-void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoXYThetaPath(const std::vector<int> &state_ids,
-                                                                   std::vector<sbpl_xy_theta_pt_t> &path) {
+void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoWaypointPath(const std::vector<int> &state_ids,
+								    std::vector<PlannedWaypointPtr> &path) {
 
 
     RAVELOG_INFO("[SBPLBasePlannerEnvironment] Begin ConvertStateIDPathIntoXYThetaPath\n");
@@ -196,10 +197,7 @@ void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoXYThetaPath(const std::ve
             wc_next = a->apply(wc_current, _timestep);
 
             // Add this pose to the pose list
-            sbpl_xy_theta_pt_t pt;
-            pt.x = wc_next.x;
-            pt.y = wc_next.y;
-            pt.theta = wc_next.theta;
+	    PlannedWaypointPtr pt = boost::make_shared<PlannedWaypoint>(wc_next, a);
             path.push_back(pt);
             
             // Set this point to current and iterate
