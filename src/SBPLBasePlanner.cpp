@@ -19,56 +19,52 @@ SBPLBasePlanner::~SBPLBasePlanner() {
 
 bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersConstPtr params) {
 
-    if(!_initialized){
-        _robot = robot;
-        _params = params;
-        _env = boost::make_shared<SBPLBasePlannerEnvironment>(robot);
-
-        // Parse the extra parameters
-        std::stringstream extra_stream;
-        extra_stream << params->_sExtraParameters;
-        int numangles = 0;
-        double cellsize = 0.0;
-        EnvironmentExtents extents;
-        std::vector<ActionPtr> actions;
-        while(extra_stream.good()) {
-            
-            std::string key;
-            extra_stream >> key;
-            
-            if( key == "numangles" ){
-                extra_stream >> numangles;
-                RAVELOG_INFO("[SBPLBasePlannerParameters] Set numangles to %d\n", numangles);
-            }else if( key == "cellsize" ) {
-                extra_stream >> cellsize;
-                RAVELOG_INFO("[SBPLBasePlannerParameters] Set cellsize to %0.3f\n", cellsize);
-            }else if( key == "extents" ){
-                extra_stream >> extents.xmin >> extents.xmax >> extents.ymin >> extents.ymax;
-                RAVELOG_INFO("[SBPLBasePlannerParameters] Setting extents to [ %0.3f, %0.3f, %0.3f, %0.3f ]\n", 
-                              extents.xmin, extents.xmax, extents.ymin, extents.ymax);
-            }else if( key == "action" ) {
-                double dx, dtheta, duration;
-                extra_stream >> dx >> dtheta >> duration;
-                ActionPtr action = boost::make_shared<TwistAction>(dx, dtheta, duration);
-                RAVELOG_INFO("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dtheta - %0.3f, duration - %0.3f\n", dx, dtheta, duration);
-                actions.push_back(action);
-            }else{
-                RAVELOG_WARN("[SBPLBasePlanner] Unrecognized parameters: %s\n", key.c_str());
-            }
-                
-        }
-
-        if( extra_stream.fail() ){
-            return false;
+    _robot = robot;
+    _params = params;
+    _env = boost::make_shared<SBPLBasePlannerEnvironment>(robot);
+    
+    // Parse the extra parameters
+    std::stringstream extra_stream;
+    extra_stream << params->_sExtraParameters;
+    int numangles = 0;
+    double cellsize = 0.0;
+    EnvironmentExtents extents;
+    std::vector<ActionPtr> actions;
+    while(extra_stream.good()) {
+        
+        std::string key;
+        extra_stream >> key;
+        
+        if( key == "numangles" ){
+            extra_stream >> numangles;
+            RAVELOG_INFO("[SBPLBasePlannerParameters] Set numangles to %d\n", numangles);
+        }else if( key == "cellsize" ) {
+            extra_stream >> cellsize;
+            RAVELOG_INFO("[SBPLBasePlannerParameters] Set cellsize to %0.3f\n", cellsize);
+        }else if( key == "extents" ){
+            extra_stream >> extents.xmin >> extents.xmax >> extents.ymin >> extents.ymax;
+            RAVELOG_INFO("[SBPLBasePlannerParameters] Setting extents to [ %0.3f, %0.3f, %0.3f, %0.3f ]\n", 
+                         extents.xmin, extents.xmax, extents.ymin, extents.ymax);
+        }else if( key == "action" ) {
+            double dx, dtheta, duration;
+            extra_stream >> dx >> dtheta >> duration;
+            ActionPtr action = boost::make_shared<TwistAction>(dx, dtheta, duration);
+            RAVELOG_INFO("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dtheta - %0.3f, duration - %0.3f\n", dx, dtheta, duration);
+            actions.push_back(action);
+        }else{
+            RAVELOG_WARN("[SBPLBasePlanner] Unrecognized parameters: %s\n", key.c_str());
         }
         
-        _env->Initialize(cellsize, extents, numangles, actions);
-        _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
-
-        _initialized = true;
     }
 
-    return _initialized;
+    if( extra_stream.fail() ){
+        return false;
+    }
+    
+    _env->Initialize(cellsize, extents, numangles, actions);
+    _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
+
+    return true;
 
 }
 

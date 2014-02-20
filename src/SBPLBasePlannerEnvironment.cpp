@@ -207,6 +207,8 @@ void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoXYThetaPath(const std::ve
         }
     }
 
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Generated path of length %d\n", path.size());
+
     return;
 }
 
