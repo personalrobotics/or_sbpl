@@ -31,7 +31,7 @@ bool SBPLBasePlannerEnvironment::Initialize(const double &cellsize,
 
     _gridwidth = static_cast<int>(ceil((extents.xmax - extents.xmin)/_cellsize));
     _gridheight = static_cast<int>(ceil((extents.ymax - extents.ymin)/_cellsize));
-
+    _extents = extents;
 
     // Angles
     _numangles = numangles;
@@ -114,7 +114,7 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
     GridCoordinate gc = WorldCoordinateToGridCoordinate(wc);
 
     int idx = GridCoordinateToStateIndex(gc);
-    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate %d: %s\n", idx, gc.toString().c_str());    
+    RAVELOG_INFO("[SBPLBasePlannerEnvironment] Trying to set goal to grid coordinate %d: %s (%s)\n", idx, wc.toString().c_str(), gc.toString().c_str());    
     if( idx == INVALID_INDEX ) {
         RAVELOG_ERROR("[SBPLBasePlannerEnvironment] The goal state %s is invalid.\n", gc.toString().c_str() );
         throw new SBPL_Exception();
@@ -237,8 +237,8 @@ int SBPLBasePlannerEnvironment::GetFromToHeuristic(int FromStateID, int ToStateI
     WorldCoordinate wFrom = GridCoordinateToWorldCoordinate(gFrom);
 
     // Calculate the euclidean distance
-    double euc_dist_m = hypot(wFrom.x - wTo.x, wFrom.y - wTo.y);
-    return (int)(euc_dist_m*1000); //millimeters
+    double cost = ComputeCost(wFrom, wTo);
+    return (int)(cost);
 
 
 }
@@ -310,8 +310,8 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     GridCoordinate gc = StateId2CoordTable[SourceStateID];
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
 
-    RAVELOG_INFO("[SBPLBasePlanningEnvironment] Expanding node %d: %s\n",
-                 SourceStateID, wc.toString().c_str());
+    RAVELOG_DEBUG("[SBPLBasePlanningEnvironment] Expanding node %d: %s (%s)\n",
+                 SourceStateID, wc.toString().c_str(), gc.toString().c_str());
 
     // Lock the environment
     OpenRAVE::EnvironmentBasePtr env = _robot->GetEnv();
@@ -359,13 +359,14 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
                     state_id = it->second;
                 }
 
-                RAVELOG_INFO("[SBPLBasePlannerEnvironment] Adding successor state %d (idx %d): %s\n", 
-                             state_id, state_idx, wc_current.toString().c_str());
+                RAVELOG_DEBUG("[SBPLBasePlannerEnvironment] Adding successor state %d (idx %d): %s (%s)\n", 
+                              state_id, state_idx, wc_current.toString().c_str(), 
+                              gc_final.toString().c_str());
 
                 SuccIDV->push_back(state_id);
 
-                double euc_dist_m = hypot(wc.x - wc_current.x, wc.y - wc_current.y);
-                CostV->push_back(euc_dist_m * 1000); // millimeters
+                double cost = ComputeCost(wc, wc_current);
+                CostV->push_back(cost); 
 
                 ActionV->push_back(a);
             }
@@ -455,8 +456,8 @@ WorldCoordinate SBPLBasePlannerEnvironment::GridCoordinateToWorldCoordinate(cons
 
     WorldCoordinate retCoord;
     
-    retCoord.x = gcoord.x*_cellsize + (_cellsize/2.0);
-    retCoord.y = gcoord.y*_cellsize + (_cellsize/2.0);
+    retCoord.x = gcoord.x*_cellsize + (_cellsize/2.0) + _extents.xmin;
+    retCoord.y = gcoord.y*_cellsize + (_cellsize/2.0) + _extents.ymin;
     retCoord.theta = gcoord.theta*_anglesize;
 
     return retCoord;
@@ -471,20 +472,26 @@ WorldCoordinate SBPLBasePlannerEnvironment::GridCoordinateToWorldCoordinate(cons
  */
 GridCoordinate SBPLBasePlannerEnvironment::WorldCoordinateToGridCoordinate(const WorldCoordinate &wcoord) const {
 
+    
     GridCoordinate retCoord;
-    if( wcoord.x >= 0 ){
-        retCoord.x = (int)(wcoord.x/_cellsize);
-    }else{
-        retCoord.x = (int)((wcoord.x/_cellsize) - 1);
+    double x = wcoord.x - _extents.xmin;
+    if( x < 0 ){ x = 0.0; }
+    retCoord.x = (int)(x/_cellsize);
+    
+    double y = wcoord.y - _extents.ymin;
+    if( y < 0 ){ y = 0.0; }
+    retCoord.y = (int)(y/_cellsize);
+    
+    double theta = wcoord.theta;
+    while(theta < 0){
+        theta += 2.0*bmc::pi<double>();
     }
 
-    if( wcoord.y >= 0 ){
-        retCoord.y = (int)(wcoord.y/_cellsize);
-    }else{
-        retCoord.y = (int)((wcoord.y/_cellsize) - 1);
+    while(theta >= 2.0*bmc::pi<double>()){
+        theta -= 2.0*bmc::pi<double>();
     }
 
-    retCoord.theta = (int)(wcoord.theta/_anglesize);
+    retCoord.theta = (int)(theta/_anglesize);
     
     return retCoord;
 
@@ -600,4 +607,20 @@ OpenRAVE::Transform SBPLBasePlannerEnvironment::WorldCoordinateToTransform(const
     OpenRAVE::RaveTransform<double> transform(OpenRAVE::geometry::quatFromMatrix(R), t);
     return transform;
 
+}
+
+/*
+ * Computes the cost of moving from one world coordinate to another
+ * 
+ * @param c1 The start world coordinate
+ * @param c2 The end world coordinate
+ * @return The cost
+ */
+double SBPLBasePlannerEnvironment::ComputeCost(const WorldCoordinate &c1, const WorldCoordinate &c2) const 
+{
+
+    double euc_dist_m = hypot(c1.x - c2.x, c1.y - c2.y);
+    double angle_diff = c2.theta - c1.theta;
+    angle_diff = fmod((angle_diff + bmc::pi<double>()), 2.0*bmc::pi<double>()) - bmc::pi<double>();
+    return euc_dist_m*1000 + fabs(angle_diff)*10; //millimeters, milliradians
 }

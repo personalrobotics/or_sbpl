@@ -60,6 +60,7 @@ namespace or_sbpl {
 
     private:
 
+        double ComputeCost(const WorldCoordinate &c1, const WorldCoordinate &c2) const;
         OpenRAVE::Transform WorldCoordinateToTransform(const WorldCoordinate &wcoord) const;
 
         OpenRAVE::RobotBasePtr _robot;         
@@ -75,6 +76,8 @@ namespace or_sbpl {
 
         std::vector<ActionPtr> _actions;
         double _timestep; // seconds per step
+
+        EnvironmentExtents _extents;
     };
 
     typedef boost::shared_ptr<SBPLBasePlannerEnvironment> SBPLBasePlannerEnvironmentPtr;
