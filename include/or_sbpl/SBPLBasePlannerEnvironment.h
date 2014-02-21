@@ -15,7 +15,7 @@ namespace or_sbpl {
 
     public:
         SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr robot);
-        ~SBPLBasePlannerEnvironment() {}
+        ~SBPLBasePlannerEnvironment();
 
         virtual bool Initialize(const double &cellsize,
                                 const EnvironmentExtents &extents,

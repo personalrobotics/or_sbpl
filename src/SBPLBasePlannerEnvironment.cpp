@@ -14,6 +14,13 @@ SBPLBasePlannerEnvironment::SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr ro
 
 }
 
+SBPLBasePlannerEnvironment::~SBPLBasePlannerEnvironment() {
+
+    StateIndex2StateIdTable.clear();
+    StateId2CoordTable.clear();
+    _actions.clear();
+}
+
 /*
  * Initialize the environment from the given parameters
  *
