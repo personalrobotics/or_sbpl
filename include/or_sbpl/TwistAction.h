@@ -9,15 +9,16 @@ namespace or_sbpl {
     
     public:
         TwistAction();
-        TwistAction(const double &dx, const double &dtheta, const double &duration);
+        TwistAction(const double &dx, const double &dy, const double &dtheta, const double &duration);
         
         virtual WorldCoordinate apply(const WorldCoordinate &wc, const double &timestep) const;
 
-	virtual double getXVelocity() const { return dx; }
-	virtual double getYVelocity() const { return 0.0; }
-	virtual double getRotationalVelocity() const { return dtheta; }
+        virtual double getXVelocity() const { return dx; }
+        virtual double getYVelocity() const { return dy; }
+        virtual double getRotationalVelocity() const { return dtheta; }
         
         double dx;
+        double dy;
         double dtheta;
 
     };

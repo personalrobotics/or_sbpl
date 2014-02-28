@@ -151,7 +151,7 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
  * @param path The converted path
  */
 void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoWaypointPath(const std::vector<int> &state_ids,
-								    std::vector<PlannedWaypointPtr> &path) {
+                                                                    std::vector<PlannedWaypointPtr> &path) {
 
 
     RAVELOG_INFO("[SBPLBasePlannerEnvironment] Begin ConvertStateIDPathIntoXYThetaPath\n");
@@ -204,7 +204,7 @@ void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoWaypointPath(const std::v
             wc_next = a->apply(wc_current, _timestep);
 
             // Add this pose to the pose list
-	    PlannedWaypointPtr pt = boost::make_shared<PlannedWaypoint>(wc_next, a);
+            PlannedWaypointPtr pt = boost::make_shared<PlannedWaypoint>(wc_next, a);
             path.push_back(pt);
             
             // Set this point to current and iterate
@@ -318,7 +318,7 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
 
     RAVELOG_DEBUG("[SBPLBasePlanningEnvironment] Expanding node %d: %s (%s)\n",
-                 SourceStateID, wc.toString().c_str(), gc.toString().c_str());
+                  SourceStateID, wc.toString().c_str(), gc.toString().c_str());
 
     // Lock the environment
     OpenRAVE::EnvironmentBasePtr env = _robot->GetEnv();
