@@ -1,15 +1,13 @@
 <package>
-  <description brief="or_sbpl">
-     or_sbpl
+  <description brief="OpenRAVE plugin for interfacing with SBPL">
+     Planning plugin for querying SBPL library through OpenRAVE.
   </description>
-  <author>jeking</author>
+  <author>Jennifer King</author>
   <license>BSD</license>
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/or_ompl</url>
+  <review status="released" notes="approved on 2/14"/>
   <depend package="openrave"/>
   <export>
     <openrave plugins="${prefix}/lib"/>
     <cpp cflags="-I${prefix}/src" lflags="-L${prefix}/lib"/>
   </export>
-
 </package>
