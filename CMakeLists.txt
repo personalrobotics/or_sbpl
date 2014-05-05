@@ -15,14 +15,25 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #common commands for building c++ executables and libraries
 rosbuild_add_library(${PROJECT_NAME} SHARED 
+  src/CachedAction.cpp
   src/SBPLMain.cpp 
   src/SBPLBasePlanner.cpp 
   src/SBPLBasePlannerEnvironment.cpp
+  src/SBPLBasePlannerTypes.cpp
   src/TwistAction.cpp)
+target_link_libraries(${PROJECT_NAME} sbpl)
+
+find_package(PythonLibs)
+include_directories(${PYTHON_INCLUDE_DIRS})
+find_package(Boost)
+include_directories(${Boost_INCLUDE_DIRS})
+
+rosbuild_add_library(or_sbpl SHARED
+  src/bp.cpp
+)
+set_target_properties(or_sbpl PROPERTIES PREFIX "" SUFFIX ".so")
+target_link_libraries(or_sbpl boost_python ${PYTHON_LIBRARIES} ${Boost_LIBRARIES})
 
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
-
-target_link_libraries(${PROJECT_NAME} sbpl)
-

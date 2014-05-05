@@ -61,7 +61,6 @@ namespace or_sbpl {
     private:
 
         double ComputeCost(const WorldCoordinate &c1, const WorldCoordinate &c2) const;
-        OpenRAVE::Transform WorldCoordinateToTransform(const WorldCoordinate &wcoord) const;
 
         OpenRAVE::RobotBasePtr _robot;         
         double _cellsize;

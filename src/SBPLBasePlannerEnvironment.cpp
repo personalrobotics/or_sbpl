@@ -193,22 +193,15 @@ void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoWaypointPath(const std::v
 
         // Play the action forward, setting all the intermediate states
         ActionPtr a = actions[best_idx];
-        int steps = static_cast<int>(ceil(a->getDuration()/_timestep));
 
         GridCoordinate gc = StateId2CoordTable[start_id];
         WorldCoordinate wc_current = GridCoordinateToWorldCoordinate(gc);
-        WorldCoordinate wc_next;
-        for(unsigned int step = 0; step < steps; step++){
+        std::vector<WorldCoordinate> pts = a->applyWithIntermediates(wc_current, _robot);
 
-            // Step the action
-            wc_next = a->apply(wc_current, _timestep);
-
+        BOOST_FOREACH(WorldCoordinate wc_next, pts){
             // Add this pose to the pose list
             PlannedWaypointPtr pt = boost::make_shared<PlannedWaypoint>(wc_next, a);
             path.push_back(pt);
-            
-            // Set this point to current and iterate
-            wc_current = wc_next;
         }
     }
 
@@ -312,7 +305,6 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
         return;
     }
 
-
     // Convert to a world coordinate
     GridCoordinate gc = StateId2CoordTable[SourceStateID];
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
@@ -324,35 +316,15 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     OpenRAVE::EnvironmentBasePtr env = _robot->GetEnv();
     OpenRAVE::EnvironmentMutex::scoped_lock lock(env->GetMutex());
 
-    // Create a robot state saver
-    OpenRAVE::RobotBase::RobotStateSaver rStateSaver(_robot);
-
     // Now step through each of the actions
     BOOST_FOREACH(ActionPtr a, _actions){
 
-        // Now step through the action, checking for collision along the way
-        int steps = static_cast<int>(ceil(a->getDuration()/_timestep));
-        bool valid = true;
-        WorldCoordinate wc_next;
-        WorldCoordinate wc_current = wc;
-        for(unsigned int step = 0; step < steps & valid; step++){
-
-            // Step the action
-            wc_next = a->apply(wc_current, _timestep);
-
-            // Put the robot in the resulting pose
-            OpenRAVE::Transform trans = WorldCoordinateToTransform(wc_next);
-            _robot->SetTransform(trans);
-
-            // Check for collision and break out if needed
-            bool incollision = env->CheckCollision(_robot);
-            valid = !incollision;
-
-            wc_current = wc_next;
-        }
-
+        // Apply each action, checking for collision along the way
+        WorldCoordinate wc_final;
+        bool valid = a->apply(wc, _robot, wc_final);
+        
         if( valid ) {
-            GridCoordinate gc_final = WorldCoordinateToGridCoordinate(wc_current);
+            GridCoordinate gc_final = WorldCoordinateToGridCoordinate(wc_final);
             int state_idx = GridCoordinateToStateIndex(gc_final);
 
             if(state_idx != INVALID_INDEX){
@@ -367,12 +339,12 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
                 }
 
                 RAVELOG_DEBUG("[SBPLBasePlannerEnvironment] Adding successor state %d (idx %d): %s (%s)\n", 
-                              state_id, state_idx, wc_current.toString().c_str(), 
+                              state_id, state_idx, wc_final.toString().c_str(), 
                               gc_final.toString().c_str());
 
                 SuccIDV->push_back(state_id);
 
-                double cost = ComputeCost(wc, wc_current);
+                double cost = ComputeCost(wc, wc_final);
                 CostV->push_back(cost); 
 
                 ActionV->push_back(a);
@@ -380,10 +352,6 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
         }
 
     }
-
-    // Restore state
-    rStateSaver.Restore();
-
 }
 
 void SBPLBasePlannerEnvironment::GetPreds(int TargetStateID, std::vector<int>* PredIDV, std::vector<int>* CostV){
@@ -592,29 +560,6 @@ bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
     }
 }
 
-/*
- * Converts a (x,y,theta) pose to a transform for the robot
- *
- * @param wcoord The pose to convert
- * @return The associated transform
- */
-OpenRAVE::Transform SBPLBasePlannerEnvironment::WorldCoordinateToTransform(const WorldCoordinate &wcoord) const {
-
-
-    // Rotation
-    OpenRAVE::RaveTransformMatrix<double> R;
-    R.rotfrommat(OpenRAVE::RaveCos(wcoord.theta), -OpenRAVE::RaveSin(wcoord.theta), 0.,
-                 OpenRAVE::RaveSin(wcoord.theta),  OpenRAVE::RaveCos(wcoord.theta), 0.,
-                 0., 0., 1.);
-
-    // Translation
-    OpenRAVE::RaveVector<double> t(wcoord.x, wcoord.y, 0.0); //TODO: Fix the z coord
-
-    // Now put them together
-    OpenRAVE::RaveTransform<double> transform(OpenRAVE::geometry::quatFromMatrix(R), t);
-    return transform;
-
-}
 
 /*
  * Computes the cost of moving from one world coordinate to another

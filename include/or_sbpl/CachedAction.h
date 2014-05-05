@@ -1,30 +1,22 @@
-#ifndef SBPL_TWIST_ACTION_H_
-#define SBPL_TWIST_ACTION_H_
+#ifndef SBPL_CACHED_ACTION_H_
+#define SBPL_CACHED_ACTION_H_
 
 #include <or_sbpl/SBPLBasePlannerTypes.h>
 
 namespace or_sbpl {
 
-    class TwistAction : public Action {
-    
-    public:
+    class CachedAction : public Action {
+
+    public: 
         /**
-         * Constructor. All twist parameters are defaulted to zero.
+         * Constructor. 
+         *
+         * @param pts The list of points that comprise this action
          */
-        TwistAction();
+        CachedAction(const std::vector<WorldCoordinate> &pts);
 
         /**
-         * Constructor.
-         *
-         * @param dx The translational velocity in world x
-         * @param dy The translational velocity in world y
-         * @param dtheta The rotational velocity
-         * @param duration The duration to apply the twist
-         */
-        TwistAction(const double &dx, const double &dy, const double &dtheta, const double &duration);
-        
-        /**
-         * Applies the twist represented by this class to the given world coordinate.
+         * Applies the action, checking for collision at each cached point
          *
          * @param wc The pose to start action propagation from
          * @param robot The robot to apply the twist to
@@ -32,9 +24,9 @@ namespace or_sbpl {
          * @return True if the action was successful. False otherwise.
          */
         virtual bool apply(const WorldCoordinate &wc, const OpenRAVE::RobotBasePtr &robot, WorldCoordinate &final_wc) const;
-
+ 
         /**
-         * Applies the twist represented by this class. 
+         * Applies the action
          *
          * @param wc The pose to start action propagation from
          * @param robot The robot to apply the twist to
@@ -44,12 +36,9 @@ namespace or_sbpl {
                                                                     const OpenRAVE::RobotBasePtr &robot) const;
 
     private:
-        double _dx;
-        double _dy;
-        double _dtheta;
-        double _duration;
-    };
+        std::vector<WorldCoordinate> _pts;
 
+    };
 
 }
 

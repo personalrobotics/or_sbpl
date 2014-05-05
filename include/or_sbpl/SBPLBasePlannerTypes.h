@@ -5,6 +5,8 @@
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <openrave/openrave.h>
+
 namespace or_sbpl {
 
     class WorldCoordinate {
@@ -14,7 +16,15 @@ namespace or_sbpl {
     WorldCoordinate(const WorldCoordinate &wc) : x(wc.x), y(wc.y), theta(wc.theta) {}
 
         std::string toString() { return (boost::format("[ %0.3f, %0.3f, %0.3f]") % x % y % theta).str(); }
-        
+
+        /**
+         * Converts a (x,y,theta) pose to a transform for the robot
+         *
+         * @param wcoord The pose to convert
+         * @return The associated transform
+         */
+        OpenRAVE::Transform toTransform() const;
+
         double x; 
         double y;
         double theta;
@@ -46,20 +56,13 @@ namespace or_sbpl {
 
     class Action {
     public:
-        virtual WorldCoordinate apply(const WorldCoordinate &wc, const double &timestep) const = 0;
-
-        double getDuration() const { return _duration; }
-        void setDuration(const double &duration) { _duration = duration; }
+        virtual bool apply(const WorldCoordinate &wc, const OpenRAVE::RobotBasePtr &robot, WorldCoordinate &final_wc) const = 0;
+        virtual std::vector<WorldCoordinate> applyWithIntermediates(const WorldCoordinate &wc, const OpenRAVE::RobotBasePtr &robot) const = 0;
 
         std::string getName() const { return _name; }
         void setName(const std::string &name) { _name = name; }
 
-	virtual double getXVelocity() const = 0;
-	virtual double getYVelocity() const = 0;
-	virtual double getRotationalVelocity() const = 0;
-
     protected:
-        double _duration;
         std::string _name;
     };
 

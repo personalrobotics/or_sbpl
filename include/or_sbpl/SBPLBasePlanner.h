@@ -29,8 +29,7 @@ namespace or_sbpl {
     private:
 
 	void AddWaypoint(OpenRAVE::TrajectoryBasePtr ptraj, const OpenRAVE::ConfigurationSpecification &config_spec,
-			 const double &x, const double &y, const double &theta,
-			 const double &dx, const double &dy, const double &dtheta) const;
+			 const double &x, const double &y, const double &theta) const;
 
 
         OpenRAVE::EnvironmentBasePtr _orenv;
