@@ -32,7 +32,7 @@ SBPLBasePlannerEnvironment::~SBPLBasePlannerEnvironment() {
 bool SBPLBasePlannerEnvironment::Initialize(const double &cellsize,
                                             const EnvironmentExtents &extents,
                                             const int &numangles,
-                                            const std::vector<ActionPtr> &actions){
+                                            const ActionList &actions){
 
     // Setup environment attributes
     _cellsize = cellsize;
@@ -317,7 +317,8 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     OpenRAVE::EnvironmentMutex::scoped_lock lock(env->GetMutex());
 
     // Now step through each of the actions
-    BOOST_FOREACH(ActionPtr a, _actions){
+    std::vector<ActionPtr> actions = _actions[gc.theta];
+    BOOST_FOREACH(ActionPtr a, actions){
 
         // Apply each action, checking for collision along the way
         WorldCoordinate wc_final;

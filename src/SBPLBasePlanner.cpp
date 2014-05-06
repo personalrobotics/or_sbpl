@@ -1,10 +1,13 @@
 #include <or_sbpl/SBPLBasePlanner.h>
 #include <or_sbpl/TwistAction.h>
+#include <or_sbpl/YAMLUtils.h>
 
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <sbpl/planners/araplanner.h>
 #include <sbpl/utils/utils.h>
+
+#include <yaml-cpp/yaml.h>
 
 using namespace or_sbpl;
 
@@ -26,41 +29,26 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
     // Parse the extra parameters
     std::stringstream extra_stream;
     extra_stream << params->_sExtraParameters;
-    int numangles = 0;
-    double cellsize = 0.0;
-    EnvironmentExtents extents;
-    std::vector<ActionPtr> actions;
-    while(extra_stream.good()) {
-        
-        std::string key;
-        extra_stream >> key;
-        
-        if( key == "numangles" ){
-            extra_stream >> numangles;
-            RAVELOG_INFO("[SBPLBasePlannerParameters] Set numangles to %d\n", numangles);
-        }else if( key == "cellsize" ) {
-            extra_stream >> cellsize;
-            RAVELOG_INFO("[SBPLBasePlannerParameters] Set cellsize to %0.3f\n", cellsize);
-        }else if( key == "extents" ){
-            extra_stream >> extents.xmin >> extents.xmax >> extents.ymin >> extents.ymax;
-            RAVELOG_INFO("[SBPLBasePlannerParameters] Setting extents to [ %0.3f, %0.3f, %0.3f, %0.3f ]\n", 
-                         extents.xmin, extents.xmax, extents.ymin, extents.ymax);
-        }else if( key == "action" ) {
-            double dx, dy, dtheta, duration;
-            extra_stream >> dx >> dy >> dtheta >> duration;
-            ActionPtr action = boost::make_shared<TwistAction>(dx, dy, dtheta, duration);
-            RAVELOG_INFO("[SBPLBasePlannerParameters] Adding action: dx - %0.3f, dy - %0.3f, dtheta - %0.3f, duration - %0.3f\n", dx, dy, dtheta, duration);
-            actions.push_back(action);
-        }else{
-            RAVELOG_WARN("[SBPLBasePlanner] Unrecognized parameters: %s\n", key.c_str());
-        }
-        
-    }
 
-    if( extra_stream.fail() ){
-        return false;
-    }
-    
+    // Parse the extra parameters as yaml
+    YAML::Parser parser(extra_stream);
+    YAML::Node doc;
+    parser.GetNextDocument(doc);
+
+    EnvironmentExtents extents;    
+    doc["extents"] >> extents;
+
+    double cellsize = 0.0;
+    doc["cellsize"] >> cellsize;
+    RAVELOG_INFO("[SBPLBasePlanner] Cellsize: %0.3f\n", cellsize);
+
+    int numangles = 0;
+    doc["numangles"] >> numangles;
+    RAVELOG_INFO("[SBPLBasePlanner] Num angles: %d\n", numangles);
+
+    ActionList actions;
+    doc["actions"] >> actions;
+
     _env->Initialize(cellsize, extents, numangles, actions);
     _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
 

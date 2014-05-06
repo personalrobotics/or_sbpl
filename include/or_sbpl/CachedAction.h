@@ -39,7 +39,7 @@ namespace or_sbpl {
         std::vector<WorldCoordinate> _pts;
 
     };
-
+    typedef boost::shared_ptr<CachedAction> CachedActionPtr;
 }
 
 #endif

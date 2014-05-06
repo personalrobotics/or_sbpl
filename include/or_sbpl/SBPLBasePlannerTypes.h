@@ -4,7 +4,7 @@
 #include <iostream>
 #include <boost/format.hpp>
 #include <boost/shared_ptr.hpp>
-
+#include <yaml-cpp/yaml.h>
 #include <openrave/openrave.h>
 
 namespace or_sbpl {

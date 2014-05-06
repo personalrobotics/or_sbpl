@@ -11,6 +11,8 @@
 
 namespace or_sbpl {
 
+    typedef std::map<unsigned int, std::vector<ActionPtr> > ActionList;
+
     class SBPLBasePlannerEnvironment : public DiscreteSpaceInformation {
 
     public:
@@ -20,7 +22,7 @@ namespace or_sbpl {
         virtual bool Initialize(const double &cellsize,
                                 const EnvironmentExtents &extents,
                                 const int &numangles,
-                                const std::vector<ActionPtr> &actions);
+                                const ActionList &actions);
 
         virtual bool InitializeEnv(const char* sEnvFile);
         virtual bool InitializeMDPCfg(MDPConfig* MDPCfg);
@@ -73,7 +75,7 @@ namespace or_sbpl {
         int _gridwidth;
         int _numangles;
 
-        std::vector<ActionPtr> _actions;
+        ActionList _actions;
         double _timestep; // seconds per step
 
         EnvironmentExtents _extents;
