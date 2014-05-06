@@ -53,6 +53,7 @@ std::vector<WorldCoordinate> CachedAction::applyWithIntermediates(const WorldCoo
         if(valid){
             intermediates.push_back(wc_current);
         }else{
+            intermediates.clear();
             break;
         }
                 
