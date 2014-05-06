@@ -33,11 +33,12 @@ std::vector<WorldCoordinate> CachedAction::applyWithIntermediates(const WorldCoo
     bool valid = true;
     BOOST_FOREACH(WorldCoordinate offset, _pts){
         
+        
         // Move to the current offset within the action
         WorldCoordinate wc_current(wc);
         wc_current.x += offset.x;
-        wc_current.x += offset.y;
-        wc_current.theta += offset.theta;
+        wc_current.y += offset.y;
+        wc_current.theta = offset.theta;
 
         // Put the robot in the resulting pose
         OpenRAVE::Transform transform = wc_current.toTransform();
@@ -48,8 +49,7 @@ std::vector<WorldCoordinate> CachedAction::applyWithIntermediates(const WorldCoo
         valid = !incollision;
         
         if(valid){
-            WorldCoordinate inter(wc_current);
-            intermediates.push_back(inter);
+            intermediates.push_back(wc_current);
         }else{
             break;
         }

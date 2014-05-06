@@ -351,7 +351,6 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
                 ActionV->push_back(a);
             }
         }
-
     }
 }
 
@@ -467,7 +466,7 @@ GridCoordinate SBPLBasePlannerEnvironment::WorldCoordinateToGridCoordinate(const
         theta -= 2.0*bmc::pi<double>();
     }
 
-    retCoord.theta = (int)(theta/_anglesize);
+    retCoord.theta = (int)(theta/_anglesize + 0.5);
     
     return retCoord;
 
