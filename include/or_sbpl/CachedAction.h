@@ -2,6 +2,8 @@
 #define SBPL_CACHED_ACTION_H_
 
 #include <or_sbpl/SBPLBasePlannerTypes.h>
+#include <boost/unordered_map.hpp>
+#include "yaml-cpp/yaml.h"
 
 namespace or_sbpl {
 
@@ -13,6 +15,7 @@ namespace or_sbpl {
          *
          * @param pts The list of points that comprise this action
          */
+        CachedAction();
         CachedAction(const std::vector<WorldCoordinate> &pts);
 
         /**
@@ -41,5 +44,12 @@ namespace or_sbpl {
     };
     typedef boost::shared_ptr<CachedAction> CachedActionPtr;
 }
+void operator >> (const YAML::Node& node,
+                  boost::unordered_map<int,
+                  std::vector<or_sbpl::CachedAction> >&);
+
+void operator >> (const YAML::Node& node, std::vector<or_sbpl::CachedAction>&);
+
+void operator >> (const YAML::Node& node, or_sbpl::CachedAction&);
 
 #endif
