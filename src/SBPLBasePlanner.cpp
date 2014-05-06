@@ -1,6 +1,6 @@
 #include <or_sbpl/SBPLBasePlanner.h>
 #include <or_sbpl/TwistAction.h>
-#include <or_sbpl/YAMLUtils.h>
+#include <or_sbpl/YamlUtils.h>
 
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
@@ -34,6 +34,8 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
     YAML::Parser parser(extra_stream);
     YAML::Node doc;
     parser.GetNextDocument(doc);
+
+    RAVELOG_INFO("[SBPLBasePlanner] Parsing\n");
 
     EnvironmentExtents extents;    
     doc["extents"] >> extents;

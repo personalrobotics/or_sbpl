@@ -89,6 +89,10 @@ namespace or_sbpl {
     };
 
     typedef boost::shared_ptr<PlannedWaypoint> PlannedWaypointPtr;
+
+    typedef std::map<unsigned int, std::vector<ActionPtr> > ActionList;
+
+
     
 }
 

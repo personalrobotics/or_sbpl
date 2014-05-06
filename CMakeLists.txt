@@ -29,5 +29,4 @@ rosbuild_add_executable(yamltest test/YamlTest.cpp src/CachedAction.cpp src/SBPL
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 
-target_link_libraries(${PROJECT_NAME} sbpl)
 target_link_libraries(yamltest yaml-cpp)

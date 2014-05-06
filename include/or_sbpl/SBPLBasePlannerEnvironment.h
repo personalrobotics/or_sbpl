@@ -11,8 +11,6 @@
 
 namespace or_sbpl {
 
-    typedef std::map<unsigned int, std::vector<ActionPtr> > ActionList;
-
     class SBPLBasePlannerEnvironment : public DiscreteSpaceInformation {
 
     public:

@@ -44,12 +44,5 @@ namespace or_sbpl {
     };
     typedef boost::shared_ptr<CachedAction> CachedActionPtr;
 }
-void operator >> (const YAML::Node& node,
-                  boost::unordered_map<int,
-                  std::vector<or_sbpl::CachedAction> >&);
-
-void operator >> (const YAML::Node& node, std::vector<or_sbpl::CachedAction>&);
-
-void operator >> (const YAML::Node& node, or_sbpl::CachedAction&);
 
 #endif
