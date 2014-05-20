@@ -240,13 +240,13 @@ namespace or_sbpl {
 
     private:
 	/**
-	 * Computes the cost of moving from one world coordinate to another
+	 * Computes the cost of moving from one grid coordinate to another
 	 * 
-	 * @param c1 The start world coordinate
-	 * @param c2 The end world coordinate
+	 * @param c1 The start grid coordinate
+	 * @param c2 The end grid coordinate
 	 * @return The cost
 	 */
-        double ComputeCost(const WorldCoordinate &c1, const WorldCoordinate &c2) const;
+        double ComputeCost(const GridCoordinate &c1, const GridCoordinate &c2) const;
 
         OpenRAVE::RobotBasePtr _robot;         
         double _cellsize;

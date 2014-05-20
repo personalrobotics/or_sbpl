@@ -5,6 +5,7 @@
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <sbpl/planners/araplanner.h>
+#include <sbpl/planners/planner.h>
 #include <sbpl/utils/utils.h>
 
 #include <yaml-cpp/yaml.h>
@@ -12,7 +13,8 @@
 using namespace or_sbpl;
 
 SBPLBasePlanner::SBPLBasePlanner(OpenRAVE::EnvironmentBasePtr penv) :
-    OpenRAVE::PlannerBase(penv), _orenv(penv), _initialized(false) {
+    OpenRAVE::PlannerBase(penv), _orenv(penv), _initialized(false), _maxtime(10.0),
+    _epsinit(5.0), _epsdec(0.2), _return_first(false) {
 
 }
 
@@ -57,6 +59,25 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
 
     ActionList actions;
     doc["actions"] >> actions;
+
+    doc["timelimit"] >> _maxtime;
+    RAVELOG_INFO("[SBPLBasePlanner] Time limit: %0.3f\n", _maxtime);
+    
+    if(const YAML::Node* init_eps = doc.FindValue("initial_eps")){
+	*init_eps >> _epsinit;
+	RAVELOG_INFO("[SBPLBasePlanner] Initial epsilon: %0.3f\n", _epsinit);
+    }
+
+    if(const YAML::Node* dec_eps = doc.FindValue("dec_eps")){
+	*dec_eps >> _epsdec;
+	RAVELOG_INFO("[SBPLBasePlanner] Epsilon decrement: %0.3f\n", _epsdec);
+    }
+
+    if(const YAML::Node* return_first = doc.FindValue("return_first")){
+	*return_first >> _return_first;
+	RAVELOG_INFO("[SBPLBasePlanner] Return first: %s\n", (_return_first ? "True" : "False") );
+    }
+
 
     _env->Initialize(cellsize, extents, numangles, actions, linear_weight, theta_weight);
     _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
@@ -129,10 +150,14 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
 
     /* Attempt to plan */
     try {
-        // TODO: Replace this max time parameter
         std::vector<int> plan;
         int path_cost;
-        int solved = _planner->replan(60.0, &plan, &path_cost);
+	ReplanParams rparams(_maxtime);
+	rparams.initial_eps = _epsinit;
+	rparams.dec_eps = _epsdec;
+	rparams.return_first_solution = _return_first;
+
+        int solved = _planner->replan(&plan, rparams, &path_cost);
         RAVELOG_INFO("[SBPLBasePlanner] Solved? %d\n", solved);
         if( solved ){
 

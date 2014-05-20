@@ -191,15 +191,12 @@ int SBPLBasePlannerEnvironment::GetFromToHeuristic(int FromStateID, int ToStateI
         throw new SBPL_Exception();
     }
 
-    // Grab the correct world coordinate
+    // Grab the correct grid coordinate
     GridCoordinate gTo = StateId2CoordTable[ToStateID];
-    WorldCoordinate wTo = GridCoordinateToWorldCoordinate(gTo);
-
     GridCoordinate gFrom = StateId2CoordTable[FromStateID];
-    WorldCoordinate wFrom = GridCoordinateToWorldCoordinate(gFrom);
 
     // Calculate the euclidean distance
-    double cost = ComputeCost(wFrom, wTo);
+    double cost = ComputeCost(gFrom, gTo);
     return (int)(cost);
 
 
@@ -277,8 +274,12 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 
                 SuccIDV->push_back(state_id);
 
-                double cost = ComputeCost(wc, wc_final) * a->getWeight();
-                CostV->push_back(cost); 
+                double cost = ComputeCost(gc, gc_final) * a->getWeight();
+		int icost = cost;
+		//		if(icost <= 0){
+		RAVELOG_ERROR("[SBPLBasePlannerEnvironment] Cost: %d, Weight: %0.3f\n", icost, a->getWeight());
+		    //}
+                CostV->push_back(icost); 
 
                 ActionV->push_back(a);
             }
@@ -439,15 +440,13 @@ bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
 }
 
 
-double SBPLBasePlannerEnvironment::ComputeCost(const WorldCoordinate &c1, const WorldCoordinate &c2) const 
+double SBPLBasePlannerEnvironment::ComputeCost(const GridCoordinate &c1, const GridCoordinate &c2) const 
 {
 
     double xdiff = c1.x - c2.x;
     double ydiff = c1.y - c2.y;
-    double adiff = c2.theta - c1.theta;
-    adiff = fmod((adiff + bmc::pi<double>()), 2.0*bmc::pi<double>()) - bmc::pi<double>();
+    double adiff = std::min(c2.theta - c1.theta, c1.theta - c2.theta);
     
     double cost = _lweight*xdiff*xdiff + _lweight*ydiff*ydiff + _tweight*adiff*adiff;
-
     return cost;
 }

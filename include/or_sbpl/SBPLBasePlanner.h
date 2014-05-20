@@ -73,7 +73,11 @@ namespace or_sbpl {
         PlannerParametersConstPtr _params;
         SBPLPlannerPtr _planner;
         SBPLBasePlannerEnvironmentPtr _env;
-
+	double _maxtime;
+	double _epsinit;
+	double _epsdec;
+	bool _return_first;
+	
         bool _initialized;
     };
     
