@@ -237,6 +237,7 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
     // Convert to a world coordinate
     GridCoordinate gc = StateId2CoordTable[SourceStateID];
     WorldCoordinate wc = GridCoordinateToWorldCoordinate(gc);
+    int orig_idx = GridCoordinateToStateIndex(gc);
 
     RAVELOG_DEBUG("[SBPLBasePlanningEnvironment] Expanding node %d: %s (%s)\n",
                   SourceStateID, wc.toString().c_str(), gc.toString().c_str());
@@ -256,6 +257,10 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
         if( valid ) {
             GridCoordinate gc_final = WorldCoordinateToGridCoordinate(wc_final);
             int state_idx = GridCoordinateToStateIndex(gc_final);
+	    if(state_idx == orig_idx){
+		RAVELOG_WARN("[SBPLBasePlanningEnvironment] Action did not move from original grid cell. Check primitives for validity.");
+		continue;
+	    }
 
             if(state_idx != INVALID_INDEX){
                 // Action propagatin led to a valid state
@@ -443,10 +448,14 @@ bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
 double SBPLBasePlannerEnvironment::ComputeCost(const GridCoordinate &c1, const GridCoordinate &c2) const 
 {
 
-    double xdiff = c1.x - c2.x;
-    double ydiff = c1.y - c2.y;
-    double adiff = std::min(c2.theta - c1.theta, c1.theta - c2.theta);
-    
+    int xdiff = c1.x - c2.x;
+    int ydiff = c1.y - c2.y;
+    int adiff1 = c2.theta - c1.theta;
+    if(adiff1 < 0) adiff1 += _numangles;
+    int adiff2 = c1.theta - c2.theta;
+    if(adiff2 < 0) adiff2 += _numangles;
+    int adiff = std::min(adiff1, adiff2);
+
     double cost = _lweight*xdiff*xdiff + _lweight*ydiff*ydiff + _tweight*adiff*adiff;
     return cost;
 }
