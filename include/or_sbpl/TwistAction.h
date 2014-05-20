@@ -5,6 +5,9 @@
 
 namespace or_sbpl {
 
+    /**
+     * An action that is parameterized as a twist
+     */
     class TwistAction : public Action {
     
     public:
@@ -20,8 +23,9 @@ namespace or_sbpl {
          * @param dy The translational velocity in world y
          * @param dtheta The rotational velocity
          * @param duration The duration to apply the twist
+	 * @param weight The weight to apply to the cost of this twist
          */
-        TwistAction(const double &dx, const double &dy, const double &dtheta, const double &duration);
+        TwistAction(const double &dx, const double &dy, const double &dtheta, const double &duration, const double &weight);
         
         /**
          * Applies the twist represented by this class to the given world coordinate.

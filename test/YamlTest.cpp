@@ -3,6 +3,7 @@
 #include <fstream>
 #include "yaml-cpp/yaml.h"
 #include <boost/unordered_map.hpp>
+#include <boost/foreach.hpp>
 
 int main(int argc, char** argv){
     std::ifstream in_file("scripts/primitives.yaml");
@@ -19,12 +20,30 @@ int main(int argc, char** argv){
     doc["numangles"] >> numangles;
     std::cout << "Num angles: " << numangles << std::endl;
 
+    
+    double linear_weight;
+    doc["linear_weight"] >> linear_weight;
+    std::cout << "Linear weight: " << linear_weight << std::endl;
+
+    double theta_weight;
+    doc["theta_weight"] >> theta_weight;
+    std::cout << "Theta weight: " << theta_weight << std::endl;
+
     or_sbpl::ActionList actions;
     doc["actions"] >> actions;
-    
+
     std::cout << "Num actions: " << actions.size() << std::endl;
-    std::cout << "First action size: " << actions[0].size() << std::endl;
-    // Can only do this if ._pts is not private
-    //std::cout << actions[0][0]._pts.size() << std::endl;
-    //std::cout << actions[0][0]._pts[3].x << " " << actions[0][0]._pts[3].y << " " << actions[0][0]._pts[3].theta << std::endl;
+
+    BOOST_FOREACH(or_sbpl::ActionList::value_type &alist, actions){
+	BOOST_FOREACH(or_sbpl::ActionPtr a, alist.second){
+	    or_sbpl::CachedActionPtr ca = boost::dynamic_pointer_cast<or_sbpl::CachedAction>(a);
+	    std::cout << "Added action with weight: " << ca->getWeight() << std::endl;
+	    std::cout << "Poses: " << std::endl;
+	    std::vector<or_sbpl::WorldCoordinate> pts = ca->getPoints();
+	    for(unsigned int i=0; i < pts.size(); i++){
+		or_sbpl::WorldCoordinate wc = pts[i];
+		std::cout << "\t" << wc << std::endl;
+	    }
+	}
+    }
 }

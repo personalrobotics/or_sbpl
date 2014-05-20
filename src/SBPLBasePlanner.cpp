@@ -37,6 +37,13 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
 
     RAVELOG_INFO("[SBPLBasePlanner] Parsing\n");
 
+    double linear_weight;
+    doc["linear_weight"] >> linear_weight;
+    RAVELOG_INFO("[SBPLBasePlanner] Linear weight: %0.3f\n", linear_weight);
+
+    double theta_weight;
+    doc["theta_weight"] >> theta_weight;
+    RAVELOG_INFO("[SBPLBasePlanner] Theta weight: %0.3f\n", theta_weight);
     EnvironmentExtents extents;    
     doc["extents"] >> extents;
 
@@ -51,7 +58,7 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
     ActionList actions;
     doc["actions"] >> actions;
 
-    _env->Initialize(cellsize, extents, numangles, actions);
+    _env->Initialize(cellsize, extents, numangles, actions, linear_weight, theta_weight);
     _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
 
     return true;

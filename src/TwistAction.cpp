@@ -9,15 +9,16 @@ namespace bmc = boost::math::constants;
 
 TwistAction::TwistAction() : _dx(0.0), _dy(0.0), _dtheta(0.0), _duration(0.0) {
     setName("twist");
+    setWeight(1.0);
 
 }
 
 TwistAction::TwistAction(const double &dx, const double &dy, const double &dtheta, 
-                         const double &duration) :
+                         const double &duration, const double &weight) :
     _dx(dx), _dy(dy), _dtheta(dtheta), _duration(duration) {
 
     setName("twist");
-
+    setWeight(weight);
 }
         
 

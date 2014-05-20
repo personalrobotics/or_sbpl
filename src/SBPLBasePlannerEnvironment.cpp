@@ -11,7 +11,8 @@ namespace bmc = boost::math::constants;
 SBPLBasePlannerEnvironment::SBPLBasePlannerEnvironment(OpenRAVE::RobotBasePtr robot) 
     : _robot(robot), _timestep(0.05) {
 
-
+    _lweight = 1000;
+    _tweight = 10;
 }
 
 SBPLBasePlannerEnvironment::~SBPLBasePlannerEnvironment() {
@@ -21,18 +22,12 @@ SBPLBasePlannerEnvironment::~SBPLBasePlannerEnvironment() {
     _actions.clear();
 }
 
-/*
- * Initialize the environment from the given parameters
- *
- * @param cellsize The size of the grid cellsize
- * @param extents The extends of the environment
- * @param angles The number of angles to divide the space
- * @param actions The list of valid actions
- */
 bool SBPLBasePlannerEnvironment::Initialize(const double &cellsize,
                                             const EnvironmentExtents &extents,
                                             const int &numangles,
-                                            const ActionList &actions){
+                                            const ActionList &actions,
+					    const double &lweight,
+					    const double &tweight){
 
     // Setup environment attributes
     _cellsize = cellsize;
@@ -45,6 +40,10 @@ bool SBPLBasePlannerEnvironment::Initialize(const double &cellsize,
     _numangles = numangles;
     _anglesize = 2.0*bmc::pi<double>()/_numangles;
 
+    // Weighting
+    _lweight = lweight;
+    _tweight = tweight;
+
     // Actions
     _actions = actions;
 
@@ -52,18 +51,12 @@ bool SBPLBasePlannerEnvironment::Initialize(const double &cellsize,
     
 }
 
-/*
- * Not implemented - we want to initialize from the OpenRAVE planner parameters
- */
 bool SBPLBasePlannerEnvironment::InitializeEnv(const char* sEnvFile) {
 
     RAVELOG_ERROR("[SBPLBasePlannerEnvironment] InitializeEnv not implemented");
     throw new SBPL_Exception();
 }
 
-/*
- * Sets the start and the goal states in the MDPCfg 
- */
 bool SBPLBasePlannerEnvironment::InitializeMDPCfg(MDPConfig* MDPCfg) {
 
     MDPCfg->goalstateid = _goal;
@@ -72,14 +65,6 @@ bool SBPLBasePlannerEnvironment::InitializeMDPCfg(MDPConfig* MDPCfg) {
     return true;
 }
 
-/*
- * Sets the start state.
- *
- * @param x The x position of the start
- * @param y  The y position of the start
- * @param theta The yaw of the start
- * @return The associated state id
- */
 int SBPLBasePlannerEnvironment::SetStart(const double &x, const double &y, const double &theta) {
 
     WorldCoordinate wc(x, y, theta);
@@ -108,14 +93,6 @@ int SBPLBasePlannerEnvironment::SetStart(const double &x, const double &y, const
     return state_id;
 }
 
-/*
- * Sets the goal state.
- *
- * @param x The x position of the goal
- * @param y  The y position of the goal
- * @param theta The yaw of the goal
- * @return The associated state id
- */
 int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const double &theta) {
 
     WorldCoordinate wc(x, y, theta);
@@ -143,13 +120,6 @@ int SBPLBasePlannerEnvironment::SetGoal(const double &x, const double &y, const 
     return state_id;
 }
 
-/*
- * Returns x,y,theta-coords for each point along the path.
- * 
- *
- * @param state_ids The list of state ids that make up the path
- * @param path The converted path
- */
 void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoWaypointPath(const std::vector<int> &state_ids,
                                                                     std::vector<PlannedWaypointPtr> &path) {
 
@@ -210,14 +180,6 @@ void SBPLBasePlannerEnvironment::ConvertStateIDPathIntoWaypointPath(const std::v
     return;
 }
 
-/*
- * Returns the heuristic cost between the two states
- * In this case, distance in millimeters.
- *
- * @param FromStateID The state to start at
- * @param ToStateID The state to go to
- * @return Euclidean distance between FromStateID and ToStateID (in mm)
- */
 int SBPLBasePlannerEnvironment::GetFromToHeuristic(int FromStateID, int ToStateID){
     if(FromStateID >= (int) StateId2CoordTable.size()){
         RAVELOG_ERROR("[SBPLBasePlannerEnvironment] ERROR in GetFromToHeuristic: FromStateID %d is illegal\n", FromStateID);
@@ -243,51 +205,21 @@ int SBPLBasePlannerEnvironment::GetFromToHeuristic(int FromStateID, int ToStateI
 
 }
 
-/*
- * Returns the heuristic cost between the two states
- * In this case, distance in millimeters.
- *
- * @param stateID The state to start at
- * @return Euclidean distance between the state and the goal
- */
 int SBPLBasePlannerEnvironment::GetGoalHeuristic(int stateID){
     return GetFromToHeuristic(stateID, _goal);
 }
 
-/*
- * Returns the distance in millimeters between
- *  the given state and the start.
- *
- * @param stateID The state to start at
- * @return Euclidean distance between the state and the start
- */
 int SBPLBasePlannerEnvironment::GetStartHeuristic(int stateID){
     return GetFromToHeuristic(stateID, _start);
 
 }
  
-/*
- * Returns a list of valid successor states.  Actions leading to these successors
- * have been checked for collision against the openrave environment.
- *
- * @param SourceStateID The state to get successors for
- * @param SuccIDV The list of valid successors
- * @param CostV The cost to move to each predecessor
- */
 void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV){
 
     std::vector<ActionPtr> ignored;
     GetSuccs(SourceStateID, SuccIDV, CostV, &ignored);
 }
-/*
- * Returns a list of valid successor states.  Actions leading to these successors
- * have been checked for collision against the openrave environment.
- *
- * @param SourceStateID The state to get successors for
- * @param SuccIDV The list of valid successors
- * @param CostV The cost to move to each predecessor
- * @param ActionV The action that moves to the predecessor
- */
+
 void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV, std::vector<ActionPtr>* ActionV){
 
     SuccIDV->clear();
@@ -345,7 +277,7 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 
                 SuccIDV->push_back(state_id);
 
-                double cost = ComputeCost(wc, wc_final);
+                double cost = ComputeCost(wc, wc_final) * a->getWeight();
                 CostV->push_back(cost); 
 
                 ActionV->push_back(a);
@@ -355,41 +287,26 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 }
 
 void SBPLBasePlannerEnvironment::GetPreds(int TargetStateID, std::vector<int>* PredIDV, std::vector<int>* CostV){
-
+    RAVELOG_ERROR("[SBPLBasePlanningEnvironment] GetPreds is not implemented.\n");
+    throw new SBPL_Exception();
 }
 
-/*
- * Not implemented
- */
 void SBPLBasePlannerEnvironment::SetAllActionsandAllOutcomes(CMDPSTATE* state){
 
     RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllActionsandAllOutcomes is not implemented.\n");
     throw new SBPL_Exception();
 }
  
-/*
- * Not implemented
- */
 void SBPLBasePlannerEnvironment::SetAllPreds(CMDPSTATE* state){
 
     RAVELOG_ERROR("[SBPLBasePlanningEnvironment] SetAllPreds is not implemented.\n");
     throw new SBPL_Exception();
 }
 
-/*
- * @return The number of states currently in the environment
- */
 int SBPLBasePlannerEnvironment::SizeofCreatedEnv(){
     return (int) StateId2CoordTable.size();
 }
 
-/*
- * Prints the state represented by the given id
- *
- * @param stateID The state to print
- * @param bVerbose If true, prints both world and grid coordinate, otherwise only gridcoord is printed
- * @param fOut The output location
- */
 void SBPLBasePlannerEnvironment::PrintState(int stateID, bool bVerbose, FILE* fOut){
 
     if( stateID > StateId2CoordTable.size() ){
@@ -412,21 +329,12 @@ void SBPLBasePlannerEnvironment::PrintState(int stateID, bool bVerbose, FILE* fO
     }
 }
 
-/*
- * Not implemented
- */
 void SBPLBasePlannerEnvironment::PrintEnv_Config(FILE* fOut){
 
     RAVELOG_ERROR("[SBPLBasePlanningEnvironment] PrintEnv_Config is not implemented.\n");
     throw new SBPL_Exception();
 }
 
-/**
- * Converts from a grid coordinate to a world coordinate
- *
- * @param stateid The id of the state to convert
- * @return The world coordinate described by the state
- */
 WorldCoordinate SBPLBasePlannerEnvironment::GridCoordinateToWorldCoordinate(const GridCoordinate &gcoord) const {
 
     WorldCoordinate retCoord;
@@ -439,12 +347,6 @@ WorldCoordinate SBPLBasePlannerEnvironment::GridCoordinateToWorldCoordinate(cons
 
 }
  
-/**
- * Converts from a world coordinate to a grid coordinate
- *
- * @param coord The world coordinate to convert
- * @return The coordinate of the grid cell containing the world coordinate
- */
 GridCoordinate SBPLBasePlannerEnvironment::WorldCoordinateToGridCoordinate(const WorldCoordinate &wcoord) const {
 
     
@@ -472,12 +374,6 @@ GridCoordinate SBPLBasePlannerEnvironment::WorldCoordinateToGridCoordinate(const
 
 }
 
-/**
- * Converts the state id to a grid coordinate
- *
- * @param stateid The state id to convert
- * @return The associated grid coordinate
- */
 GridCoordinate SBPLBasePlannerEnvironment::StateIndexToGridCoordinate(unsigned int stateidx) const{
 
     if( stateidx >= StateIndex2StateIdTable.size() ){
@@ -494,12 +390,6 @@ GridCoordinate SBPLBasePlannerEnvironment::StateIndexToGridCoordinate(unsigned i
     return StateId2CoordTable[it->second];
 }
 
-/**
- * Converts the grid coordinate to a state id
- *
- * @param coord The grid coordinate to convert
- * @return The state id associated with the grid coordinate
- */
 int SBPLBasePlannerEnvironment::GridCoordinateToStateIndex(const GridCoordinate &coord) const{
 
     int retIdx = INVALID_INDEX;
@@ -518,12 +408,6 @@ int SBPLBasePlannerEnvironment::GridCoordinateToStateIndex(const GridCoordinate 
   
 }
 
-/*
- * Creates a state from the given coordinate
- *
- * @param coord The coordinate
- * @return The id of the created state
- */
 int SBPLBasePlannerEnvironment::CreateState(const GridCoordinate &gc) {
 
     // get the index
@@ -545,12 +429,6 @@ int SBPLBasePlannerEnvironment::CreateState(const GridCoordinate &gc) {
     return state_id;
 }
 
-/*
- * Checks a state id for validity
- *
- * @param state_id The id to check
- * @return True if the id is valid
- */
 bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
     
     if( state_id < 0 || state_id >= StateId2CoordTable.size() ){
@@ -561,18 +439,15 @@ bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
 }
 
 
-/*
- * Computes the cost of moving from one world coordinate to another
- * 
- * @param c1 The start world coordinate
- * @param c2 The end world coordinate
- * @return The cost
- */
 double SBPLBasePlannerEnvironment::ComputeCost(const WorldCoordinate &c1, const WorldCoordinate &c2) const 
 {
 
-    double euc_dist_m = hypot(c1.x - c2.x, c1.y - c2.y);
-    double angle_diff = c2.theta - c1.theta;
-    angle_diff = fmod((angle_diff + bmc::pi<double>()), 2.0*bmc::pi<double>()) - bmc::pi<double>();
-    return euc_dist_m*1000 + fabs(angle_diff)*10; //millimeters, milliradians
+    double xdiff = c1.x - c2.x;
+    double ydiff = c1.y - c2.y;
+    double adiff = c2.theta - c1.theta;
+    adiff = fmod((adiff + bmc::pi<double>()), 2.0*bmc::pi<double>()) - bmc::pi<double>();
+    
+    double cost = _lweight*xdiff*xdiff + _lweight*ydiff*ydiff + _tweight*adiff*adiff;
+
+    return cost;
 }

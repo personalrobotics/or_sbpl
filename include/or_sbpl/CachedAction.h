@@ -7,16 +7,24 @@
 
 namespace or_sbpl {
 
+    /**
+     * An action that is parameterized as a cached list of points that make up the action
+     */
     class CachedAction : public Action {
 
     public: 
+	/**
+	 * Constructor.
+	 */
+        CachedAction();
+
         /**
          * Constructor. 
          *
          * @param pts The list of points that comprise this action
+	 * @param weight The weight to apply to the action cost
          */
-        CachedAction();
-        CachedAction(const std::vector<WorldCoordinate> &pts);
+        CachedAction(const std::vector<WorldCoordinate> &pts, const double &weight);
 
         /**
          * Applies the action, checking for collision at each cached point
@@ -37,6 +45,11 @@ namespace or_sbpl {
          */
         virtual std::vector<WorldCoordinate> applyWithIntermediates(const WorldCoordinate &wc,
                                                                     const OpenRAVE::RobotBasePtr &robot) const;
+	
+	/**
+	 * @return The list of points in the action
+	 */
+	virtual std::vector<WorldCoordinate> getPoints() const { return _pts; }
 
     private:
         std::vector<WorldCoordinate> _pts;

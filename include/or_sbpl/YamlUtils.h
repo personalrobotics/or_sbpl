@@ -21,17 +21,27 @@ namespace or_sbpl {
     inline void operator >> (const YAML::Node& node, ActionPtr& action){
         std::vector<WorldCoordinate> pts;
         pts.clear();
-    
+
+	double weight = 1.0;
+	
         for(YAML::Iterator it = node.begin(); it != node.end(); ++it){
-            YAML::Iterator xyz = it->begin();
-            WorldCoordinate action_coord;
-            *it >> action_coord;
-            pts.push_back(action_coord);
-//            std::cout << action_coord.x << " " << action_coord.y << " " << action_coord.theta << std::endl;
+	    std::string primitive_key;
+	    it.first() >> primitive_key;
+	    const YAML::Node& primitive_value = it.second();
+	    if(primitive_key == "poses"){
+		// Read in the pose list
+		for(YAML::Iterator pose_it = primitive_value.begin(); pose_it != primitive_value.end(); ++pose_it){
+		    YAML::Iterator xyz = pose_it->begin();
+		    WorldCoordinate action_coord;
+		    *pose_it >> action_coord;
+		    pts.push_back(action_coord);
+		}
+	    }else if(primitive_key == "weight"){
+		primitive_value >> weight;
+	    }
         }
-        //std::cout << "A" << pts[3].x << " " << pts[3].y << " " << pts[3].theta << std::endl;
-        action = boost::make_shared<CachedAction>(pts);
-        //std::cout << action._pts[3].x << " " << action._pts[3].y << " " << action._pts[3].theta << std::endl;
+
+        action = boost::make_shared<CachedAction>(pts, weight);
     }
 
     inline void operator >> (const YAML::Node& value,
@@ -47,7 +57,7 @@ namespace or_sbpl {
                 if(action_key == "angle"){
                     action_value >> angle;
                 }
-                else if(action_key == "poses"){
+                else if(action_key == "primitives"){
                     action_value >> angle_actions;
                 }
             }
@@ -61,7 +71,6 @@ namespace or_sbpl {
         size_t ii = 0;
         for(YAML::Iterator it = node.begin(); it != node.end(); ++it, ++ii){
             *it >> actions[ii];
-            //std::cout << actions[ii]._pts[1].x << " " << actions[ii]._pts[1].y << std::endl;
         }
     }
 

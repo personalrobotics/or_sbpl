@@ -5,11 +5,14 @@
 
 using namespace or_sbpl;
 
-CachedAction::CachedAction(){}
+CachedAction::CachedAction() {
+    setWeight(1.0);
+}
 
-CachedAction::CachedAction(const std::vector<WorldCoordinate> &pts) :
+CachedAction::CachedAction(const std::vector<WorldCoordinate> &pts, const double &weight) :
     _pts(pts) {
     setName("cached");
+    setWeight(weight);
 }
 
 bool CachedAction::apply(const WorldCoordinate &wc, const OpenRAVE::RobotBasePtr &robot, WorldCoordinate &final_wc) const {
