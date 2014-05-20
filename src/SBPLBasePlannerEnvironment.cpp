@@ -274,11 +274,11 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 
                 SuccIDV->push_back(state_id);
 
-                double cost = ComputeCost(gc, gc_final) * a->getWeight();
-		int icost = cost;
-		//		if(icost <= 0){
-		RAVELOG_ERROR("[SBPLBasePlannerEnvironment] Cost: %d, Weight: %0.3f\n", icost, a->getWeight());
-		    //}
+                double cost = ComputeCost(gc, gc_final);
+		int icost = cost * a->getWeight();
+		if(icost <= 0){
+		    RAVELOG_WARN("[SBPLBasePlannerEnvironment] Invalid cost: %d (Cost: %0.3f, Weight: %0.3f)\n", icost, cost, a->getWeight());
+		}
                 CostV->push_back(icost); 
 
                 ActionV->push_back(a);
