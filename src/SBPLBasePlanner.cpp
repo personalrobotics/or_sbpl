@@ -74,9 +74,11 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
     }
 
     if(const YAML::Node* return_first = doc.FindValue("return_first")){
-	*return_first >> _return_first;
-	RAVELOG_INFO("[SBPLBasePlanner] Return first: %s\n", (_return_first ? "True" : "False") );
+	int rfirst;
+	*return_first >> rfirst;
+	_return_first = (rfirst == 1);
     }
+    RAVELOG_INFO("[SBPLBasePlanner] Return first: %s\n", (_return_first ? "True" : "False") );
 
 
     _env->Initialize(cellsize, extents, numangles, actions, linear_weight, theta_weight);
@@ -156,6 +158,7 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
 	rparams.initial_eps = _epsinit;
 	rparams.dec_eps = _epsdec;
 	rparams.return_first_solution = _return_first;
+	rparams.max_time = _maxtime;
 
         int solved = _planner->replan(&plan, rparams, &path_cost);
         RAVELOG_INFO("[SBPLBasePlanner] Solved? %d\n", solved);
