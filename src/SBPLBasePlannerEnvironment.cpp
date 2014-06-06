@@ -375,7 +375,10 @@ GridCoordinate SBPLBasePlannerEnvironment::WorldCoordinateToGridCoordinate(const
     }
 
     retCoord.theta = (int)(theta/_anglesize + 0.5);
-    
+	// Catch the angle wrap-around
+	if(retCoord.theta == _numangles)
+		retCoord.theta = 0;
+
     return retCoord;
 
 }
