@@ -32,7 +32,7 @@ target_link_libraries(${PROJECT_NAME}
 
 openrave_plugin(${PROJECT_NAME}_plugin src/SBPLMain.cpp)
 target_link_libraries(${PROJECT_NAME}_plugin
-    ${SBPL_LIBRARIES} ${OpenRAVE_LIBRARIES})
+    ${PROJECT_NAME} ${SBPL_LIBRARIES} ${OpenRAVE_LIBRARIES})
 
 install(TARGETS or_sbpl
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
