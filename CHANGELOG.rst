@@ -2,8 +2,8 @@
 Changelog for package or_sbpl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2015-02-17)
+------------------
 * linked or_sbpl library to openrave plugin
 * Fixing bug in or_sbpl angle grid cell assignment
 * Moving primitive generatino scripts to timpy and herbpy
