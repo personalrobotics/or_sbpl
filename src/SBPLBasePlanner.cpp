@@ -32,6 +32,25 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
     std::stringstream extra_stream;
     extra_stream << params->_sExtraParameters;
 
+    double linear_weight;
+    double theta_weight;
+    double cellsize = 0.0;
+    int numangles = 0;
+
+    EnvironmentExtents extents;    
+    ActionList actions;
+
+#ifdef YAMLCPP_NEWAPI
+    YAML::Node doc = YAML::Load(extra_stream);
+
+    linear_weight = doc["linear_weight"].as<double>();
+    theta_weight = doc["theta_weight"].as<double>();
+    doc["extents"] >> extents;
+    cellsize = doc["cellsize"].as<double>();
+    numangles = doc["numangles"].as<int>();
+    doc["actions"] >> actions;
+    _maxtime = doc["timelimit"].as<double>();
+#else
     // Parse the extra parameters as yaml
     YAML::Parser parser(extra_stream);
     YAML::Node doc;
@@ -39,47 +58,37 @@ bool SBPLBasePlanner::InitPlan(OpenRAVE::RobotBasePtr robot, PlannerParametersCo
 
     RAVELOG_INFO("[SBPLBasePlanner] Parsing\n");
 
-    double linear_weight;
     doc["linear_weight"] >> linear_weight;
-    RAVELOG_INFO("[SBPLBasePlanner] Linear weight: %0.3f\n", linear_weight);
-
-    double theta_weight;
     doc["theta_weight"] >> theta_weight;
-    RAVELOG_INFO("[SBPLBasePlanner] Theta weight: %0.3f\n", theta_weight);
-    EnvironmentExtents extents;    
     doc["extents"] >> extents;
-
-    double cellsize = 0.0;
     doc["cellsize"] >> cellsize;
-    RAVELOG_INFO("[SBPLBasePlanner] Cellsize: %0.3f\n", cellsize);
-
-    int numangles = 0;
     doc["numangles"] >> numangles;
-    RAVELOG_INFO("[SBPLBasePlanner] Num angles: %d\n", numangles);
-
-    ActionList actions;
     doc["actions"] >> actions;
-
     doc["timelimit"] >> _maxtime;
-    RAVELOG_INFO("[SBPLBasePlanner] Time limit: %0.3f\n", _maxtime);
     
-    if(const YAML::Node* init_eps = doc.FindValue("initial_eps")){
-	*init_eps >> _epsinit;
-	RAVELOG_INFO("[SBPLBasePlanner] Initial epsilon: %0.3f\n", _epsinit);
+    if (YAML::Node const *init_eps = doc.FindValue("initial_eps")) {
+        *init_eps >> _epsinit;
+        RAVELOG_INFO("[SBPLBasePlanner] Initial epsilon: %0.3f\n", _epsinit);
     }
 
-    if(const YAML::Node* dec_eps = doc.FindValue("dec_eps")){
-	*dec_eps >> _epsdec;
-	RAVELOG_INFO("[SBPLBasePlanner] Epsilon decrement: %0.3f\n", _epsdec);
+
+    if (YAML::Node const *dec_eps = doc.FindValue("dec_eps")) {
+        *dec_eps >> _epsdec;
+        RAVELOG_INFO("[SBPLBasePlanner] Epsilon decrement: %0.3f\n", _epsdec);
     }
 
-    if(const YAML::Node* return_first = doc.FindValue("return_first")){
-	int rfirst;
-	*return_first >> rfirst;
-	_return_first = (rfirst == 1);
+    if (YAML::Node const *return_first = doc.FindValue("return_first")) {
+        int rfirst;
+        *return_first >> rfirst;
+        _return_first = (rfirst == 1);
     }
+#endif
+
+    RAVELOG_INFO("[SBPLBasePlanner] Theta weight: %0.3f\n", theta_weight);
+    RAVELOG_INFO("[SBPLBasePlanner] Cellsize: %0.3f\n", cellsize);
+    RAVELOG_INFO("[SBPLBasePlanner] Num angles: %d\n", numangles);
+    RAVELOG_INFO("[SBPLBasePlanner] Time limit: %0.3f\n", _maxtime);
     RAVELOG_INFO("[SBPLBasePlanner] Return first: %s\n", (_return_first ? "True" : "False") );
-
 
     _env->Initialize(cellsize, extents, numangles, actions, linear_weight, theta_weight);
     _planner = boost::make_shared<ARAPlanner>(_env.get(), true);
