@@ -2,6 +2,13 @@
 Changelog for package or_sbpl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#3 <https://github.com/personalrobotics/or_sbpl/issues/3>`_ from personalrobotics/feature/yaml0.5
+  Added support for yaml-cpp 0.5 (for Ubuntu 14.04)
+* Added support for yaml-cpp 0.5.
+* Contributors: Michael Koval
+
 1.0.0 (2015-02-17)
 ------------------
 * linked or_sbpl library to openrave plugin
