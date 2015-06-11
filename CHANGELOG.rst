@@ -2,8 +2,8 @@
 Changelog for package or_sbpl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.0 (2015-06-10)
+------------------
 * Merge pull request `#3 <https://github.com/personalrobotics/or_sbpl/issues/3>`_ from personalrobotics/feature/yaml0.5
   Added support for yaml-cpp 0.5 (for Ubuntu 14.04)
 * Added support for yaml-cpp 0.5.
