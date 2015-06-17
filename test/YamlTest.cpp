@@ -51,11 +51,7 @@ int main(int argc, char** argv){
     std::cout << "Theta weight: " << theta_weight << std::endl;
 
     or_sbpl::ActionList actions;
-#ifdef YAMLCPP_NEWAPI
-    actions = doc["actions"].as<or_sbpl::ActionList>();
-#else
     doc["actions"] >> actions;
-#endif
     std::cout << "Num actions: " << actions.size() << std::endl;
 
     BOOST_FOREACH(or_sbpl::ActionList::value_type &alist, actions){

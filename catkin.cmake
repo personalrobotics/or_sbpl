@@ -20,7 +20,6 @@ else ()
     add_definitions(-DYAMLCPP_NEWAPI)
     message(STATUS "Using the new-style yaml-cpp (>= 0.5.0) API.")
 endif ()
-
 include_directories(
   include
   ${OpenRAVE_INCLUDE_DIRS}
@@ -41,6 +40,14 @@ target_link_libraries(${PROJECT_NAME}
 openrave_plugin(${PROJECT_NAME}_plugin src/SBPLMain.cpp)
 target_link_libraries(${PROJECT_NAME}_plugin
     ${PROJECT_NAME} ${SBPL_LIBRARIES} ${OpenRAVE_LIBRARIES})
+
+add_executable(yamltest
+  test/YamlTest.cpp
+  src/CachedAction.cpp
+  src/SBPLBasePlannerTypes.cpp
+)
+target_link_libraries(yamltest
+   yaml-cpp ${OpenRAVE_LIBRARIES} boost_system)
 
 install(TARGETS or_sbpl
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
