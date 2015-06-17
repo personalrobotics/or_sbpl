@@ -6,32 +6,56 @@
 #include <boost/foreach.hpp>
 
 int main(int argc, char** argv){
+
+#ifdef YAMLCPP_NEWAPI
+    YAML::Node doc = YAML::LoadFile("scripts/primitives.yaml");
+#else
     std::ifstream in_file("scripts/primitives.yaml");
     YAML::Parser parser(in_file);
     
     YAML::Node doc;
     parser.GetNextDocument(doc);
+#endif
     
     double cellsize = 0.0;
+#ifdef YAMLCPP_NEWAPI
+    cellsize = doc["cellsize"].as<double>();
+#else
     doc["cellsize"] >> cellsize;
+#endif
     std::cout << "Cellsize: " << cellsize << std::endl;
 
     int numangles = 0;
+#ifdef YAMLCPP_NEWAPI
+    numangles = doc["numangles"].as<int>();
+#else
     doc["numangles"] >> numangles;
+#endif
     std::cout << "Num angles: " << numangles << std::endl;
 
     
-    double linear_weight;
+    double linear_weight = 0.0;
+#ifdef YAMLCPP_NEWAPI
+    linear_weight = doc["linear_weight"].as<double>();
+#else
     doc["linear_weight"] >> linear_weight;
+#endif
     std::cout << "Linear weight: " << linear_weight << std::endl;
 
-    double theta_weight;
+    double theta_weight = 0.0;
+#ifdef YAMLCPP_NEWAPI
+    theta_weight = doc["theta_weight"].as<double>();
+#else
     doc["theta_weight"] >> theta_weight;
+#endif
     std::cout << "Theta weight: " << theta_weight << std::endl;
 
     or_sbpl::ActionList actions;
+#ifdef YAMLCPP_NEWAPI
+    actions = doc["actions"].as<or_sbpl::ActionList>();
+#else
     doc["actions"] >> actions;
-
+#endif
     std::cout << "Num actions: " << actions.size() << std::endl;
 
     BOOST_FOREACH(or_sbpl::ActionList::value_type &alist, actions){
