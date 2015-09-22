@@ -110,9 +110,9 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
     RAVELOG_INFO("[SBPLBasePlanner] Begin PlanPath\n");
 
     /* Setup the start point for the plan */
+    std::vector<OpenRAVE::dReal> start_vals(3);
     try{
         
-        std::vector<OpenRAVE::dReal> start_vals(3);
         OpenRAVE::RaveGetAffineDOFValuesFromTransform(start_vals.begin(),
                                                       _robot->GetTransform(),
                                                       OpenRAVE::DOF_X | OpenRAVE::DOF_Y | OpenRAVE::DOF_RotationAxis);
@@ -163,11 +163,11 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
     try {
         std::vector<int> plan;
         int path_cost;
-	ReplanParams rparams(_maxtime);
-	rparams.initial_eps = _epsinit;
-	rparams.dec_eps = _epsdec;
-	rparams.return_first_solution = _return_first;
-	rparams.max_time = _maxtime;
+        ReplanParams rparams(_maxtime);
+        rparams.initial_eps = _epsinit;
+        rparams.dec_eps = _epsdec;
+        rparams.return_first_solution = _return_first;
+        rparams.max_time = _maxtime;
 
         int solved = _planner->replan(&plan, rparams, &path_cost);
         RAVELOG_INFO("[SBPLBasePlanner] Solved? %d\n", solved);
@@ -179,8 +179,14 @@ OpenRAVE::PlannerStatus SBPLBasePlanner::PlanPath(OpenRAVE::TrajectoryBasePtr pt
             config_spec.AddDerivativeGroups(1, true);  //velocity group, add delta time group
             ptraj->Init(config_spec);
             std::vector<PlannedWaypointPtr> xyth_path;
-            _env->ConvertStateIDPathIntoWaypointPath(plan, xyth_path);
 
+            // Add the start pose to the trajectory - this is not in the returned path
+            //  by default
+            AddWaypoint(ptraj, config_spec,
+                        start_vals[0], start_vals[1], start_vals[2]);
+
+            // Now add the rest of the path
+            _env->ConvertStateIDPathIntoWaypointPath(plan, xyth_path);
             for(unsigned int idx=0; idx < xyth_path.size(); idx++){
 
                 // Grab this point in the planned path
