@@ -259,6 +259,7 @@ namespace or_sbpl {
 
     typedef boost::shared_ptr<PlannedWaypoint> PlannedWaypointPtr;
 
+    // Map orientation grid coordinate to list of available actions
     typedef std::map<unsigned int, std::vector<ActionPtr> > ActionList;
 
 

@@ -7,19 +7,20 @@ catkin_package(
     LIBRARIES ${PROJECT_NAME}
 )
 
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenRAVE REQUIRED)
 
 include(FindPkgConfig)
 pkg_check_modules(SBPL REQUIRED sbpl)
 
 pkg_check_modules(YamlCpp REQUIRED yaml-cpp)
-
 if (${YamlCpp_VERSION} VERSION_LESS 0.5.0)
     message(STATUS "Using the old-style yaml-cpp (< 0.5.0) API.")
 else ()
     add_definitions(-DYAMLCPP_NEWAPI)
     message(STATUS "Using the new-style yaml-cpp (>= 0.5.0) API.")
 endif ()
+
 include_directories(
   include
   ${OpenRAVE_INCLUDE_DIRS}
@@ -35,7 +36,7 @@ add_library(${PROJECT_NAME}
   src/CachedAction.cpp
   src/TwistAction.cpp)
 target_link_libraries(${PROJECT_NAME}
-    ${SBPL_LIBRARIES} ${OpenRAVE_LIBRARIES} ${Yaml_LIBRARIES})
+  ${catkin_LIBRARIES} ${SBPL_LIBRARIES} ${OpenRAVE_LIBRARIES} ${Yaml_LIBRARIES})
 
 openrave_plugin(${PROJECT_NAME}_plugin src/SBPLMain.cpp)
 target_link_libraries(${PROJECT_NAME}_plugin
@@ -54,3 +55,15 @@ install(TARGETS or_sbpl
 install(DIRECTORY include/${PROJECT_NAME}/
     DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
     PATTERN ".svn" EXCLUDE)
+
+
+catkin_add_gtest(test_SBPLBasePlannerEnvironment tests/test_SBPLBasePlannerEnvironment.cpp)
+target_link_libraries(test_SBPLBasePlannerEnvironment
+  ${OpenRAVE_LIBRARIES}
+  ${OpenRAVE_CORE_LIBRARIES}
+  ${SBPL_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${PROJECT_NAME}
+  yaml-cpp
+)
+  
