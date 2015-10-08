@@ -221,6 +221,7 @@ void SBPLBasePlannerEnvironment::GetSuccs(int SourceStateID, std::vector<int>* S
 
     SuccIDV->clear();
     CostV->clear();
+    ActionV->clear();
 
     // Check validity of the state
     if( !IsValidStateId(SourceStateID) ){
@@ -451,14 +452,20 @@ bool SBPLBasePlannerEnvironment::IsValidStateId(const int &state_id) const {
 double SBPLBasePlannerEnvironment::ComputeCost(const GridCoordinate &c1, const GridCoordinate &c2) const 
 {
 
-    int xdiff = c1.x - c2.x;
-    int ydiff = c1.y - c2.y;
-    int adiff1 = c2.theta - c1.theta;
-    if(adiff1 < 0) adiff1 += _numangles;
-    int adiff2 = c1.theta - c2.theta;
-    if(adiff2 < 0) adiff2 += _numangles;
-    int adiff = std::min(adiff1, adiff2);
+    WorldCoordinate w1 = GridCoordinateToWorldCoordinate(c1);
+    WorldCoordinate w2 = GridCoordinateToWorldCoordinate(c2);
 
-    double cost = _lweight*xdiff*xdiff + _lweight*ydiff*ydiff + _tweight*adiff*adiff;
+    double xdiff = 1000.*(w1.x - w2.x);
+    double ydiff = 1000.*(w1.y - w2.y);
+
+    // Angle diff - angles between 0 and 2pi
+    double pi = boost::math::constants::pi<double>();
+    double adiff1 = w2.theta - w1.theta;
+    if(adiff1 < 0) adiff1 += 2.*pi;
+    double adiff2 = w1.theta - w2.theta;
+    if(adiff2 < 0) adiff2 += 2.*pi;
+    double adiff = std::min(adiff1, adiff2);
+
+    double cost = _lweight*std::sqrt(xdiff*xdiff + ydiff*ydiff) + _tweight*adiff;
     return cost;
 }

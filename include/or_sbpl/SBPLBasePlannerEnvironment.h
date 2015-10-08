@@ -39,7 +39,7 @@ namespace or_sbpl {
         /**
          * Initialize the environment from the given parameters
          *
-         * @param cellsize The size of the grid cellsize
+         * @param cellsize The size of the grid cellsize (meters)
          * @param extents The extends of the environment
          * @param numangles The number of angles to divide the space
          * @param actions The list of valid actions
@@ -65,17 +65,17 @@ namespace or_sbpl {
 
         /**
          * Returns the heuristic cost between the two states
-         * In this case, distance in millimeters.
+         * In this case, millimeters + radians
          *
          * @param FromStateID The state to start at
          * @param ToStateID The state to go to
-         * @return Euclidean distance between FromStateID and ToStateID (in mm)
+         * @return Euclidean distance between FromStateID and ToStateID 
          */
         virtual int GetFromToHeuristic(int FromStateID, int ToStateID);
 
         /**
          * Returns the heuristic cost between the two states
-         * In this case, distance in millimeters.
+         * In this case, distance in millimeters + radians.
          *
          * @param stateID The state to start at
          * @return Euclidean distance between the state and the goal
@@ -83,7 +83,7 @@ namespace or_sbpl {
         virtual int GetGoalHeuristic(int stateID);
 
         /**
-         * Returns the distance in millimeters between
+         * Returns the distance in millimeters + radians between
          *  the given state and the start.
          *
          * @param stateID The state to start at
@@ -97,7 +97,7 @@ namespace or_sbpl {
          *
          * @param SourceStateID The state to get successors for
          * @param SuccIDV The list of valid successors
-         * @param CostV The cost to move to each predecessor
+         * @param CostV The cost to move to each successor
          */
         virtual void GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV);
 
@@ -107,8 +107,8 @@ namespace or_sbpl {
          *
          * @param SourceStateID The state to get successors for
          * @param SuccIDV The list of valid successors
-         * @param CostV The cost to move to each predecessor
-         * @param ActionV The action that moves to the predecessor
+         * @param CostV The cost to move to each successor
+         * @param ActionV The action that moves to the successor
          */
         virtual void GetSuccs(int SourceStateID, std::vector<int>* SuccIDV, std::vector<int>* CostV, std::vector<ActionPtr>* ActionV);
 
