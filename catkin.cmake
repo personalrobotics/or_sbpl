@@ -66,4 +66,13 @@ target_link_libraries(test_SBPLBasePlannerEnvironment
   ${PROJECT_NAME}
   yaml-cpp
 )
-  
+
+catkin_add_gtest(test_SBPLBasePlanner tests/test_SBPLBasePlanner.cpp)
+target_link_libraries(test_SBPLBasePlanner
+  ${OpenRAVE_LIBRARIES}
+  ${OpenRAVE_CORE_LIBRARIES}
+  ${SBPL_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${PROJECT_NAME}
+  yaml-cpp
+)

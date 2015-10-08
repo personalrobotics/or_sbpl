@@ -6,13 +6,15 @@
 #include <boost/math/constants/constants.hpp>
 #include <openrave/openrave.h>
 #include <openrave-core.h>
+#include "OpenRAVETestEnvironment.h"
 
 class SBPLBasePlannerEnvironmentTest : public testing::Test {
 
 public:
 
-    SBPLBasePlannerEnvironmentTest() {
-        // You can do set-up work for each test here
+    void SetUp() {
+        // Code here will be called immediately after the constructor (right
+        // before each test).
         
         // Define six actions - forward, back, left, right, turn left, turn right
         const double half_pi = 0.5*boost::math::constants::pi<double>();
@@ -44,7 +46,6 @@ public:
 
 
         // Now create an openrave world and environment
-        OpenRAVE::RaveInitialize(true);
         _penv = OpenRAVE::RaveCreateEnvironment();
         _robot = _penv->ReadRobotXMLFile("robots/pr2-beta-sim.robot.xml");
         _robot->SetName("PR2");
@@ -77,16 +78,6 @@ public:
         _goal.x = 3.4;
         _goal.y = 2.6;
         _goal.theta = 5.0;
-    }
-
-    virtual ~SBPLBasePlannerEnvironmentTest() {
-        
-        OpenRAVE::RaveDestroy();
-    }
-
-    virtual void SetUp() {
-        // Code here will be called immediately after the constructor (right
-        // before each test).
     }
 
     virtual void TearDown() {
@@ -198,7 +189,7 @@ public:
     
 
     // Objects declared here can be used by all tests in the test case
-    or_sbpl::SBPLBasePlannerEnvironment::Ptr _planner_env;
+    or_sbpl::SBPLBasePlannerEnvironmentPtr _planner_env;
     OpenRAVE::EnvironmentBasePtr _penv;
     OpenRAVE::RobotBasePtr _robot;
 
@@ -381,5 +372,6 @@ TEST_F(SBPLBasePlannerEnvironmentTest, GetSuccessors) {
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
+    testing::AddGlobalTestEnvironment(new OpenRAVETestEnvironment);
     return RUN_ALL_TESTS();
 }

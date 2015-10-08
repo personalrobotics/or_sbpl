@@ -18,11 +18,6 @@ namespace or_sbpl {
     class SBPLBasePlannerEnvironment : public DiscreteSpaceInformation {
 
     public:
-        /**
-         * Shared pointers
-         */
-        typedef boost::shared_ptr<SBPLBasePlannerEnvironment> Ptr;
-        typedef boost::shared_ptr<const SBPLBasePlannerEnvironment> ConstPtr;
 
         /**
          * Constructor
@@ -234,6 +229,32 @@ namespace or_sbpl {
          */
         static const int UNINITIALIZED_ID = -1;
 
+        /**
+         * @return The cellsize for the planning grid
+         */
+        double GetCellsize() const { return _cellsize; }
+
+        /**
+         * @return The number of angles in the planning grid
+         */
+        int GetNumAngles() const { return _numangles; }
+
+        /**
+         * @return The weight applied to linear translation when computing cost
+         */
+        double GetLinearWeight() const { return _lweight; }
+
+        /**
+         * @return The weight applied to angular translation when computing cost
+         */
+        double GetAngularWeight() const { return _tweight; }
+        
+        /**
+         * @return The extents of the environment
+         */
+        EnvironmentExtents GetExtents() const { return _extents; }
+
+
     protected:
         /**
          * Map state ids to the associated grid coordinate
@@ -276,6 +297,7 @@ namespace or_sbpl {
     };
 
     typedef boost::shared_ptr<SBPLBasePlannerEnvironment> SBPLBasePlannerEnvironmentPtr;
+    typedef boost::shared_ptr<SBPLBasePlannerEnvironment const> SBPLBasePlannerEnvironmentConstPtr;
 
 }
 

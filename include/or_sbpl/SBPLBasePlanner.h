@@ -62,6 +62,11 @@ namespace or_sbpl {
 	 */
         virtual PlannerParametersConstPtr GetParameters() const { return _params; }
         
+        /**
+         * @return The planning environment
+         */
+        SBPLBasePlannerEnvironmentConstPtr GetPlannerEnv() const { return _env; }
+
     private:
 
 	void AddWaypoint(OpenRAVE::TrajectoryBasePtr ptraj, const OpenRAVE::ConfigurationSpecification &config_spec,
