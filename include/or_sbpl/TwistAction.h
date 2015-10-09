@@ -27,6 +27,11 @@ namespace or_sbpl {
          */
         TwistAction(const double &dx, const double &dy, const double &dtheta, const double &duration, const double &weight);
         
+        /** 
+         * Destructor
+         */
+        virtual ~TwistAction() {}
+
         /**
          * Applies the twist represented by this class to the given world coordinate.
          *
