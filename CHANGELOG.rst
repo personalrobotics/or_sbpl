@@ -2,6 +2,16 @@
 Changelog for package or_sbpl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Adding unit tests
+* Adding logic to put the current pose of the robot as the first point in the returned trajectory
+* Added a missing dependency to package.xml
+* Linking against yaml in plugin
+* Updating yaml test so that it builds. Adding yaml test to catkin build
+* updating yaml test to be 14.04 compliant
+* Contributors: Jennifer King, Michael Koval
+
 1.1.0 (2015-06-10)
 ------------------
 * Merge pull request `#3 <https://github.com/personalrobotics/or_sbpl/issues/3>`_ from personalrobotics/feature/yaml0.5
