@@ -2,8 +2,8 @@
 Changelog for package or_sbpl
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.2.0 (2015-10-12)
+------------------
 * Adding unit tests
 * Adding logic to put the current pose of the robot as the first point in the returned trajectory
 * Added a missing dependency to package.xml
